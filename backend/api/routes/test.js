@@ -14,16 +14,14 @@ const projectId='493999387097'
 const location ='us'
 const processorId='1d6981e46b0d570b'
 
-// יצירת קישור ל-API של Google Document AI באמצעות מפתח ה-JSON
+
 const client = new DocumentProcessorServiceClient();
 
 async function processDocument() {
   const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
-  // נתיב לתמונה שברצונך לשלוח לעיבוד
-  //const fileName = './images/image1.jpg'; // השתמש בנתיב לתמונה בתיקיית images
+  
   const imagePath = path.join(__dirname, '..', 'images', 'ID', 'ID1.pdf');
 
-  // קריאת התמונה
   const image = fs.readFileSync(imagePath);
   const encodedImage = image.toString('base64');
 
@@ -32,7 +30,6 @@ async function processDocument() {
   console.log('File Exists:', fs.existsSync(imagePath));
 
 
-  // בקשה לעיבוד התמונה
   const request = {
     name,
     rawDocument: {
