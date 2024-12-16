@@ -1,14 +1,10 @@
-
-const a = 1;
-const b = 2;
-const sum = a + b;
-console.log("Sum:", sum);
-
 const path = require('path');
 require('dotenv').config();
+console.log(process.env.GOOGLE_APPLICATION_CREDENTIALS); 
 const {DocumentProcessorServiceClient} =
   require('@google-cloud/documentai').v1beta3;
 
+//const fs = require('fs');
 const fs = require('fs');
 const projectId='493999387097'
 const location ='us'
@@ -38,38 +34,32 @@ async function processDocument() {
     },
   };
 
-  try {
-    const [result] = await client.processDocument(request);
-    console.log('Processing result:', result);
-  } catch (error) {
-    console.error('Full Error:', JSON.stringify(error, null, 2));
-  }
+  // try {
+  //   const [result] = await client.processDocument(request);
+  //   console.log('Processing result:', result);
+  // } catch (error) {
+  //   console.error('Full Error:', JSON.stringify(error, null, 2));
+  // }
 
 
 
   const [result] = await client.processDocument(request);
 
-  console.log('Document processing complete.');
+  //console.log('Document processing complete.');
+
+  const document = result.document;
 
 
-  const {document} = result;
-  for (const entity of document.entities) {
-    // Fields detected. For a full list of fields for each processor see
-    // the processor documentation:
-    // https://cloud.google.com/document-ai/docs/processors-list
-    const key = entity.type;
-    // some other value formats in addition to text are availible
-    // e.g. dates: `entity.normalizedValue.dateValue.year`
-    const textValue =
-      entity.textAnchor !== null ? entity.textAnchor.content : '';
-    const conf = entity.confidence * 100;
-    console.log(
-      `* ${JSON.stringify(key)}: ${JSON.stringify(textValue)}(${conf.toFixed(
-        2
-      )}% confident)`
-    );
-    }
+  const entities = document.entities;
 
+  const jsonResponse = entities.map(entity => {
+    return {
+      key: entity.type,         
+      value: entity.mentionText 
+    };
+  });
+  
+  return jsonResponse;
 
 }
 
