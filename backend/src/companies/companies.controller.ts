@@ -15,7 +15,7 @@ export class CompaniesController {
   async create(@Request() req, @Body() createCompanyDto: CreateCompanyDto) {
     try {
       // Only ADMIN users can create new companies
-      if (req.user.role !== 'ADMIN') {
+      if (req.user.role !== 'admin') {
         console.log(`[CompaniesController] Unauthorized create attempt: ${JSON.stringify({
           userId: req.user.userId,
           role: req.user.role
@@ -41,7 +41,7 @@ export class CompaniesController {
   async findAll(@Request() req) {
     try {
       // Only ADMIN users can see all companies
-      if (req.user.role !== 'ADMIN') {
+      if (req.user.role !== 'admin') {
         console.log(`[CompaniesController] Unauthorized findAll attempt: ${JSON.stringify({
           userId: req.user.userId,
           role: req.user.role
@@ -74,7 +74,7 @@ export class CompaniesController {
   async findOne(@Request() req, @Param('id') id: string) {
     try {
       // Only ADMIN users can see other companies
-      if (req.user.role !== 'ADMIN' && id !== req.user.companyId) {
+      if (req.user.role !== 'admin' && id !== req.user.companyId) {
         console.log(`[CompaniesController] Unauthorized findOne attempt: ${JSON.stringify({
           userId: req.user.userId,
           role: req.user.role,
@@ -108,7 +108,7 @@ export class CompaniesController {
   async update(@Request() req, @Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
     try {
       // Only ADMIN users can update other companies
-      if (req.user.role !== 'ADMIN' && id !== req.user.companyId) {
+      if (req.user.role !== 'admin' && id !== req.user.companyId) {
         console.log(`[CompaniesController] Unauthorized update attempt: ${JSON.stringify({
           userId: req.user.userId,
           role: req.user.role,
@@ -142,7 +142,7 @@ export class CompaniesController {
   async remove(@Request() req, @Param('id') id: string) {
     try {
       // Only ADMIN users can delete companies
-      if (req.user.role !== 'ADMIN') {
+      if (req.user.role !== 'admin') {
         console.log(`[CompaniesController] Unauthorized delete attempt: ${JSON.stringify({
           userId: req.user.userId,
           role: req.user.role,
