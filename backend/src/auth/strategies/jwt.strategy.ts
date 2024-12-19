@@ -1,54 +1,68 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET environment variable is not set');
-    }
+  private readonly logger = new Logger(JwtStrategy.name);
+
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
     });
   }
 
   async validate(payload: any) {
     try {
-      console.log(`[JwtStrategy] Validating token payload: ${JSON.stringify(payload)}`);
-      
-      // Get user from database to include current role
+      this.logger.log(`Validating JWT payload: ${JSON.stringify({
+        userId: payload.sub,
+        email: payload.email,
+        timestamp: new Date().toISOString()
+      }, null, 2)}`);
+
       const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub }
+        where: { id: payload.sub },
       });
 
       if (!user) {
-        console.log(`[JwtStrategy] User not found for payload: ${JSON.stringify(payload)}`);
+        this.logger.warn(`User not found for JWT payload: ${JSON.stringify({
+          userId: payload.sub,
+          email: payload.email,
+          timestamp: new Date().toISOString()
+        }, null, 2)}`);
         throw new UnauthorizedException('User not found');
       }
 
-      console.log(`[JwtStrategy] User validated: ${JSON.stringify({ 
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      })}`);
-
-      // Return user info to be added to request
-      return {
-        userId: user.id,
+      const result = {
+        id: user.id,
         email: user.email,
         role: user.role,
         companyId: user.companyId,
-        ...payload
       };
+
+      this.logger.log(`JWT validation successful: ${JSON.stringify({
+        userId: result.id,
+        email: result.email,
+        role: result.role,
+        companyId: result.companyId,
+        timestamp: new Date().toISOString()
+      }, null, 2)}`);
+
+      return result;
     } catch (error) {
-      console.error(`[JwtStrategy] Validation error: ${JSON.stringify({ 
+      this.logger.error(`JWT validation failed: ${JSON.stringify({
+        userId: payload?.sub,
+        email: payload?.email,
         error: error.message,
-        payload
-      })}`);
+        timestamp: new Date().toISOString()
+      }, null, 2)}`, error.stack);
       throw error;
     }
   }

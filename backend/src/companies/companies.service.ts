@@ -101,11 +101,13 @@ export class CompaniesService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string): Promise<{ deletedCompany: Company }> {
     try {
-      await this.prisma.company.delete({
-        where: { id }
+      const deletedCompany = await this.prisma.company.delete({
+        where: { id },
       });
+      
+      return { deletedCompany };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
