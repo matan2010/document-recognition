@@ -7,7 +7,8 @@ import {
   Param, 
   Delete, 
   UseGuards,
-  Logger
+  Logger,
+  Request
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -145,6 +146,40 @@ export class ClientsController {
     } catch (error) {
       this.logger.error(`Failed to fetch client: ${JSON.stringify({
         id,
+        companyId,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }, null, 2)}`, error.stack);
+      throw error;
+    }
+  }
+
+  @Get(':id/documents')
+  @ApiOperation({ summary: 'Get client documents' })
+  @ApiResponse({ status: 200, description: 'Documents found' })
+  @ApiResponse({ status: 404, description: 'Client not found' })
+  async getClientDocuments(@Request() req, @Company() companyId: string, @Param('id') id: string) {
+    try {
+      this.logger.log(`Fetching documents for client: ${JSON.stringify({
+        clientId: id,
+        companyId,
+        requestedBy: req.user.id,
+        timestamp: new Date().toISOString()
+      }, null, 2)}`);
+
+      const documents = await this.clientsService.findClientDocuments(id, companyId);
+      
+      this.logger.log(`Documents retrieved successfully: ${JSON.stringify({
+        clientId: id,
+        documentCount: documents.length,
+        requestedBy: req.user.id,
+        timestamp: new Date().toISOString()
+      }, null, 2)}`);
+
+      return documents;
+    } catch (error) {
+      this.logger.error(`Failed to fetch client documents: ${JSON.stringify({
+        clientId: id,
         companyId,
         error: error.message,
         timestamp: new Date().toISOString()

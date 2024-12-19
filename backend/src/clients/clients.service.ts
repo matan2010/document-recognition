@@ -123,6 +123,24 @@ export class ClientsService {
         }
     }
 
+    async findClientDocuments(id: string, companyId: string) {
+        const client = await this.prisma.client.findFirst({
+          where: { 
+            id,
+            companyId
+          },
+          include: {
+            documents: true
+          }
+        });
+
+        if (!client) {
+          throw new NotFoundException(`Client not found`);
+        }
+
+        return client.documents;
+    }
+
     async remove(id: string, companyId: string) {
         // First check if client exists and belongs to company
         const client = await this.findOne(id, companyId);
