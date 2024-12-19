@@ -15,7 +15,7 @@ import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Company } from '../decorators/company.decorator';
+import { Company } from '../auth/decorators/company.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 
@@ -277,7 +277,7 @@ export class DocumentsController {
       const result = await this.documentsService.remove(id, companyId);
       
       this.logger.log(`Document deleted successfully: ${JSON.stringify({
-        id: result. deletedDocument.id,
+        id: result.deletedDocument.id,
         title: result.deletedDocument.title,
         clientId: result.deletedDocument.client.clientReferenceId,
         companyId: companyId,
