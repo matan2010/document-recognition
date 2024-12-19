@@ -33,6 +33,17 @@ async function bootstrap() {
     next();
   });
   
+
+   // Graceful shutdown
+   const signals = ['SIGTERM', 'SIGINT'];
+   for (const signal of signals) {
+     process.on(signal, async () => {
+       console.log(`Received ${signal}, closing application...`);
+       await app.close();
+       process.exit(0);
+     });
+   }
+
   // Listen on the specified port
   const port = process.env.PORT || 8000;
   console.log(`Application starting on port ${port}`);
