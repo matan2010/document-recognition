@@ -1,42 +1,53 @@
 import React, { useState } from 'react';
+import '../styles/Download.css';
 
 const DownloadComponent = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [file, setFile] = useState(null);
 
-  // פונקציה להורדת המידע מהשרת
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]);
+  };
+
   const handleDownload = async () => {
+    if (!file) {
+      setError('Please upload a file before downloading.');
+      return;
+    }
+
     setLoading(true);
-    setError(null);  // Clear previous errors, if any.
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (data) {
+      data.forEach(item => formData.append(item.key, item.value));
+    }
 
     try {
       const response = await fetch('http://localhost:3000/api/v1/process/document', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        body: formData,
       });
 
       if (!response.ok) {
         throw new Error('Something went wrong with the download!');
       }
       const result = await response.json();
-      setData(result);  // Save the result in state
+      setData(result);
     } catch (err) {
-      setError(err.message);  // Store the error message if there is one
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // פונקציה לשמירת המידע (כאן ניתן להוסיף את הלוגיקה לשמירה במאגר או שליחה לשרת)
   const handleSave = () => {
-    // כאן אתה יכול להוסיף את הלוגיקה לשמירת הנתונים (למשל לשלוח לשרת)
     alert('Data saved!');
   };
 
-  // פונקציה לעדכון הערך של ה-input
   const handleChange = (index, event) => {
     const updatedData = [...data];
     updatedData[index].value = event.target.value;
@@ -45,6 +56,18 @@ const DownloadComponent = () => {
 
   return (
     <div>
+      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <label htmlFor="file-upload" className="custom-file-upload">
+          Upload Image
+        </label>
+        <input
+          type="file"
+          id="file-upload"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </div>
+
       <button onClick={handleDownload}>
         Click to Download
       </button>
@@ -64,14 +87,14 @@ const DownloadComponent = () => {
                 <input
                   type="text"
                   value={item.value}
-                  onChange={(e) => handleChange(index, e)}  // Update value on change
+                  onChange={(e) => handleChange(index, e)}  
                   style={{
                     width: '100%',
                     padding: '5px',
                     fontSize: '14px',
                     borderRadius: '4px',
                     border: '1px solid #ccc',
-                    backgroundColor: '#fff'  // Allow editing by making it white
+                    backgroundColor: '#fff'  
                   }}
                 />
               </div>
