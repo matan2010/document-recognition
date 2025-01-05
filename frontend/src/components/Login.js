@@ -1,48 +1,87 @@
 import React, { useState } from 'react';
-import '../styles/Login.css';
-
+import '../styles/Login.css'; // Import your CSS file
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Username:', username);
-    console.log('Password:', password);
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setErrorMessage(''); // Clear previous errors
 
-    alert('Login Successful');
+    try {
+      // Replace with your actual API call
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || 'Login failed.');
+        return;
+      }
+
+      // Successful login, handle redirection or state management here
+      console.log('Login successful!');
+      // Redirect to the dashboard or other intended page
+    } catch (error) {
+      setErrorMessage('An error occurred during login.');
+    }
   };
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="username">Username:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+      <div className="login-container">
+        <div className="login-form">
+          <img src="/../public/logo192.png" alt="Company Logo" className="logo" />
+          <h2>Login</h2>
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label htmlFor="email">Email/Username:</label>
+              <input
+                  type="text"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Password:</label>
+              <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+              />
+              <span className="show-password" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? 'Hide' : 'Show'}
+            </span>
+            </div>
+            <div className="form-group">
+              <input type="checkbox" id="rememberMe" />
+              <label htmlFor="rememberMe">Remember me</label>
+            </div>
+            <button type="submit" className="login-button">
+              Login
+            </button>
+            <a href="#" className="forgot-password">
+              Forgot password?
+            </a>
+          </form>
+          <p>
+            Don't have an account? <a href="#">Sign up your company</a>
+          </p>
+          {/* Add OAuth options here if applicable */}
         </div>
-
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit">Login</button>
-      </form>
-    </div>
+      </div>
   );
 };
 
