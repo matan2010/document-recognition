@@ -37,8 +37,9 @@ const Login = () => {
 
   return (
       <div className="login-container">
+        {/*<img src={"https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png"}/>*/}
         <div className="login-form">
-          <img src="/../public/logo192.png" alt="Company Logo" className="logo" />
+          <img src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png" className="logo" />
           <h2>Login</h2>
           {errorMessage && <p className="error-message">{errorMessage}</p>}
           <form onSubmit={handleLogin}>
