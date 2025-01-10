@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import '../styles/Login.css'; // Import your CSS file
+import './Login.css'; // Import your CSS file
+import SignUpCompany from '../SignUpCompany'; // Import your SignUpCompany component
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const navigate = useNavigate(); // Use useNavigate hook for navigation
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -30,6 +34,7 @@ const Login = () => {
       // Successful login, handle redirection or state management here
       console.log('Login successful!');
       // Redirect to the dashboard or other intended page
+      navigate('/dashboard'); // Example redirection
     } catch (error) {
       setErrorMessage('An error occurred during login.');
     }
@@ -39,7 +44,7 @@ const Login = () => {
       <div className="login-container">
         {/*<img src={"https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png"}/>*/}
         <div className="login-form">
-          <img src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png" className="logo" />
+          <img src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png" className="logo"/>
           <h2>Login</h2>
           {errorMessage && <p className="error-message">{errorMessage}</p>}
           <form onSubmit={handleLogin}>
@@ -67,7 +72,7 @@ const Login = () => {
             </span>
             </div>
             <div className="form-group">
-              <input type="checkbox" id="rememberMe" />
+              <input type="checkbox" id="rememberMe"/>
               <label htmlFor="rememberMe">Remember me</label>
             </div>
             <button type="submit" className="login-button">
@@ -78,7 +83,10 @@ const Login = () => {
             </a>
           </form>
           <p>
-            Don't have an account? <a href="#">Sign up your company</a>
+            Don't have an account?{' '}
+            <a href="#" onClick={() => navigate('/signup-company')}>
+              Sign up your company
+            </a>
           </p>
           {/* Add OAuth options here if applicable */}
         </div>
