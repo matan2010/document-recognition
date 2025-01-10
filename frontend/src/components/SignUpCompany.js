@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 const SignUp = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [companyInfo, setCompanyInfo] = useState({
-        name: '',
+        companyName: '',
         industry: '',
         size: '',
         email: '',
@@ -38,19 +38,21 @@ const SignUp = () => {
 
     const handleSubmit = async (step) => {
         setErrors({}); // Clear previous errors
+        console.log(step);
 
         try {
             // Validate data based on the current step
-            const validationErrors = validateData(step);
-            if (Object.keys(validationErrors).length > 0) {
-                setErrors(validationErrors);
-                return;
-            }
+            //const validationErrors = validateData(step);
+            // console.log(validationErrors);
+            // if (Object.keys(validationErrors).length > 0) {
+            //     setErrors(validationErrors);
+            //     return;
+            // }
 
             // Handle API calls or form submissions here
             if (step === 1) {
                 // Send company information to the server
-                console.log('Step 1: Company Information submitted:', companyInfo);
+                console.log('Step 1: Company Information submitted:', companyInfo.companyName);
                 setCurrentStep(2);
             } else if (step === 2) {
                 // Send admin account information to the server
@@ -174,19 +176,77 @@ const CompanyInfo = ({ companyInfo, handleInputChange, handleSubmit, errors }) =
     return (
         <div>
             <h2>Company Information</h2>
+
+            {/* Company Name */}
             <div className="form-group">
                 <label htmlFor="companyName">Company Name:</label>
                 <input
                     type="text"
                     id="companyName"
                     name="companyName"
-                    value={companyInfo.name}
-                    onChange={(e) => handleInputChange(1, 'name', e.target.value)}
+                    value={companyInfo.companyName}
+                    onChange={(e) => handleInputChange(1, 'companyName', e.target.value)}
                     required
                 />
-                {errors.name && <span className="error">{errors.name}</span>}
+                {errors.companyName && <span className="error">{errors.companyName}</span>}
             </div>
-            {/* ... other fields for industry, size, email, phone */}
+
+            {/* Industry */}
+            <div className="form-group">
+                <label htmlFor="industry">Industry:</label>
+                <input
+                    type="text"
+                    id="industry"
+                    name="industry"
+                    value={companyInfo.industry}
+                    onChange={(e) => handleInputChange(1, 'industry', e.target.value)}
+                    required
+                />
+                {errors.industry && <span className="error">{errors.industry}</span>}
+            </div>
+
+            {/* Company Size */}
+            <div className="form-group">
+                <label htmlFor="size">Company Size:</label>
+                <input
+                    type="text"
+                    id="size"
+                    name="size"
+                    value={companyInfo.size}
+                    onChange={(e) => handleInputChange(1, 'size', e.target.value)}
+                    required
+                />
+                {errors.size && <span className="error">{errors.size}</span>}
+            </div>
+
+            {/* Business Email */}
+            <div className="form-group">
+                <label htmlFor="email">Business Email:</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={companyInfo.email}
+                    onChange={(e) => handleInputChange(1, 'email', e.target.value)}
+                    required
+                />
+                {errors.email && <span className="error">{errors.email}</span>}
+            </div>
+
+            {/* Phone Number */}
+            <div className="form-group">
+                <label htmlFor="phone">Phone Number:</label>
+                <input
+                    type="text"
+                    id="phone"
+                    name="phone"
+                    value={companyInfo.phone}
+                    onChange={(e) => handleInputChange(1, 'phone', e.target.value)}
+                    required
+                />
+                {errors.phone && <span className="error">{errors.phone}</span>}
+            </div>
+
             <button type="button" onClick={() => handleSubmit(1)}>
                 Next
             </button>
@@ -199,7 +259,63 @@ const AdminAccount = ({ adminAccount, handleInputChange, handleSubmit, errors })
     return (
         <div>
             <h2>Admin Account</h2>
-            {/* ... (fields for fullName, email, password, confirmPassword) */}
+
+            {/* Full Name */}
+            <div className="form-group">
+                <label htmlFor="fullName">Full Name:</label>
+                <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={adminAccount.fullName}
+                    onChange={(e) => handleInputChange(2, 'fullName', e.target.value)}
+                    required
+                />
+                {errors.fullName && <span className="error">{errors.fullName}</span>}
+            </div>
+
+            {/* Email */}
+            <div className="form-group">
+                <label htmlFor="email">Email:</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={adminAccount.email}
+                    onChange={(e) => handleInputChange(2, 'email', e.target.value)}
+                    required
+                />
+                {errors.email && <span className="error">{errors.email}</span>}
+            </div>
+
+            {/* Password */}
+            <div className="form-group">
+                <label htmlFor="password">Password:</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={adminAccount.password}
+                    onChange={(e) => handleInputChange(2, 'password', e.target.value)}
+                    required
+                />
+                {errors.password && <span className="error">{errors.password}</span>}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="form-group">
+                <label htmlFor="confirmPassword">Confirm Password:</label>
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={adminAccount.confirmPassword}
+                    onChange={(e) => handleInputChange(2, 'confirmPassword', e.target.value)}
+                    required
+                />
+                {errors.confirmPassword && <span className="error">{errors.confirmPassword}</span>}
+            </div>
+
             <button type="button" onClick={() => handleSubmit(2)}>
                 Next
             </button>
@@ -208,17 +324,27 @@ const AdminAccount = ({ adminAccount, handleInputChange, handleSubmit, errors })
 };
 
 // Step 3: Verification component
-const Verification = ({
-                          verificationType,
-                          verificationCode,
-                          handleInputChange,
-                          handleSubmit,
-                          errors,
-                      }) => {
+const Verification = ({ verificationType, verificationCode, handleInputChange, handleSubmit, errors }) => {
     return (
         <div>
             <h2>Verification</h2>
-            {/* ... (verification code input field) */}
+
+            <p>Please enter the verification code sent to your {verificationType}:</p>
+
+            {/* Verification Code */}
+            <div className="form-group">
+                <label htmlFor="verificationCode">Verification Code:</label>
+                <input
+                    type="text"
+                    id="verificationCode"
+                    name="verificationCode"
+                    value={verificationCode}
+                    onChange={(e) => handleInputChange(3, 'verificationCode', e.target.value)}
+                    required
+                />
+                {errors.verificationCode && <span className="error">{errors.verificationCode}</span>}
+            </div>
+
             <button type="button" onClick={() => handleSubmit(3)}>
                 Verify
             </button>
@@ -231,9 +357,20 @@ const WelcomeScreen = () => {
     return (
         <div>
             <h2>Welcome!</h2>
-            {/* ... (welcome message, quick start guide, setup checklist) */}
+            <p>Thank you for signing up! Your account has been successfully created.</p>
+
+            <ul>
+                <li>Get started with our quick start guide.</li>
+                <li>Explore the setup checklist to configure your account.</li>
+                <li>Reach out to support if you need any assistance.</li>
+            </ul>
+
+            <button type="button" onClick={() => alert('Start Exploring!')}>
+                Start Exploring
+            </button>
         </div>
     );
 };
+
 
 export default SignUp;
