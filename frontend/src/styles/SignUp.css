@@ -1,0 +1,89 @@
+/* General page styles */
+.sign-up-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f4f4f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+  }
+  
+  /* Input fields styling */
+  .input-container {
+    margin-bottom: 15px;
+    text-align: left;
+  }
+  
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  
+  input:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+  
+  /* Password input container */
+  .password-container {
+    position: relative;
+  }
+  
+  .password-toggle {
+    position: absolute;
+    right: -10px;
+    top: 60%;
+    transform: translateY(-50%);  /* Vertically center the icon */
+    font-size: 20px;  /* Smaller icon size */
+    cursor: pointer;
+    color: #007bff;
+    user-select: none;
+    transition: font-size 0.2s ease;
+  }
+  
+  /* Styles when password is visible (eye icon smaller) */
+  .password-toggle.open {
+    font-size: 20px;
+  }
+  
+  /* Styles when password is hidden (eye icon larger) */
+  .password-toggle.closed {
+    font-size: 20px;
+  }
+  
+  /* Button styling */
+  .create-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #28a745;
+    border: none;
+    color: white;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .create-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  /* Error message styling */
+  .error-message {
+    color: #ff0000;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  

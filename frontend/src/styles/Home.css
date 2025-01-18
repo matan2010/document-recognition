@@ -1,0 +1,33 @@
+/* Home.css */
+.home-page {
+  padding: 20px;
+}
+
+.table-container {
+  margin-top: 20px;
+}
+
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.clients-table th,
+.clients-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.clients-table th {
+  background-color: #f2f2f2;
+}
+
+.clients-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+.clients-table td {
+  text-align: center;
+}

@@ -1,0 +1,39 @@
+.navbar {
+    display: flex;
+    justify-content: flex-end; /* מיקום הכפתורים בצד ימין */
+    background-color: #7c1414;
+    padding: 10px 20px;
+  }
+  
+  .navbar-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .navbar-link {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .navbar-link:hover {
+    font-size: 18px; /* הגדלת הגודל */
+    color: #ff9800; /* שינוי צבע */
+  }
+  
+  .logout-button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .logout-button:hover {
+    font-size: 18px;
+    color: #ff9800;
+  }
+  
