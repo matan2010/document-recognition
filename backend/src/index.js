@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import app from "./server.js";
 import DocumentsDAO from "../dao/documentsDAO.js";
 
@@ -20,3 +20,4 @@ try {
   console.error(err.stack);
   process.exit(1);
 }
+

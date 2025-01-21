@@ -1,0 +1,14 @@
+.custom-file-upload {
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    background-color: #f1f1f1;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+  }
+  
+  .custom-file-upload:hover {
+    background-color: #ddd;
+  }

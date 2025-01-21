@@ -9,3 +9,9 @@ An OCR (Optical Character Recognition) project designed to extract relevant info
 http://localhost:3000/
 http://localhost:3000/api/v1/download
 http://localhost:3000/api/v1/download/document_id/doc1
+
+
+To run the project:
+- "npm start" for backend folder
+- "npm start" for frontend folder
+- create google-credentials.json in backend/api/credentials with your Google Document AI credentials.
