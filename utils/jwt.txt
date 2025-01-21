@@ -1,0 +1,27 @@
+node -e console.log(require('crypto').randomBytes(32).toString('hex'))
+
+JWT Secret for development environment:
+4f5ba3369ecd17f08aae465355bbc467f5509b2fedbcc00649eb2aa3ca5f3e9e
+
+Note: This is for development purposes only. Never commit this file to version control.
+Make sure to use different secrets for staging and production environments.
+
+
+************************************************************************************************************************************************
+
+JWT_SECRET is your server's private key for:
+Signing tokens when users authenticate
+Verifying tokens in incoming requests
+
+The actual JWT tokens:
+Are created during authentication
+Contain encrypted company information
+Are sent by clients in the Authorization header
+Expire after 7 days (as configured in your AuthModule)
+
+Your JwtStrategy and JwtAuthGuard work together to:
+Intercept requests
+Validate tokens
+Extract company information
+Protect your routes
+
