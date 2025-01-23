@@ -14,7 +14,7 @@ export class UsersService {
       data: {
         ...createUserDto,
         password: hashedPassword,
-        companyId
+        companyId,
       },
     });
   }
@@ -25,15 +25,15 @@ export class UsersService {
 
   findAllByCompany(companyId: string) {
     return this.prisma.user.findMany({
-      where: { companyId }
+      where: { companyId },
     });
   }
 
   async findOne(id: string, companyId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
-        companyId
+        companyId,
       },
     });
 
@@ -51,9 +51,9 @@ export class UsersService {
     }
 
     return this.prisma.user.update({
-      where: { 
+      where: {
         id,
-        companyId
+        companyId,
       },
       data: updateUserDto,
     });
@@ -61,12 +61,12 @@ export class UsersService {
 
   async remove(id: string, companyId: string) {
     const deletedUser = await this.prisma.user.delete({
-      where: { 
+      where: {
         id,
-        companyId
+        companyId,
       },
     });
-    
+
     return { deletedUser };
   }
 }
