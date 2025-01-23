@@ -10,6 +10,7 @@ const CreateClient = () => {
   const [formError, setFormError] = useState("");
   const navigate = useNavigate();
 
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
