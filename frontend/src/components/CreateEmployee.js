@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
+import { useNavigate } from "react-router-dom";
 import '../styles/CreateEmployee.css';
 
 const CreateEmployee = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
-  const [companyId, setCompanyId] = useState(''); // הוספת שדה companyId
+  const [companyId, setCompanyId] = useState(''); 
   const [roleError, setRoleError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
+
+  // אפס את השדות כאשר הדף נטען מחדש
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setRole('');
+  }, []); // [] גורם לכך שזה יקרה רק פעם אחת כשדף ייטען מחדש
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -26,12 +35,19 @@ const CreateEmployee = () => {
       role,
     };
 
+    const jwtToken = localStorage.getItem("access_token");
+    if (!jwtToken) {
+      alert("You are not authorized. Redirecting to login.");
+      navigate("/login");
+      return;
+    }
 
     try {
       const response = await fetch('http://localhost:8000/users/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwtToken}`,
         },
         body: JSON.stringify(userData),
       });
@@ -41,12 +57,16 @@ const CreateEmployee = () => {
       }
 
       console.log('Submitted:', userData);
+      alert('User registered successfully'); 
 
+      
+      setEmail('');
+      setPassword('');
+      setRole('');
+      setErrorMessage('');  
     } catch (error) {
       setErrorMessage(error.message);
     }
-
-
   };
 
   return (
@@ -108,6 +128,8 @@ const CreateEmployee = () => {
         <div className="form-actions">
           <button type="submit">Create Employee</button>
         </div>
+
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
       </form>
     </div>
   );
