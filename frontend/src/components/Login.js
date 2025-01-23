@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
+import { Link, useNavigate } from 'react-router-dom';
+import authService from '../services/auth.service';
 import '../styles/Login.css';
 
 const Login = () => {
@@ -7,80 +8,82 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const navigate = useNavigate(); // Declare the navigate function
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (event) => {
     event.preventDefault();
-    setErrorMessage(''); // Clear previous errors
+    setErrorMessage('');
+    setIsLoading(true);
 
     try {
-      // Replace with your actual API call
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        //const errorData = await response.json();//need to return this
-        //setErrorMessage(errorData.message || 'Login failed.');//need to return this
-       // return;
-      }
-
-      // Successful login, handle redirection
-      console.log('Login successful!');
-      navigate('/home'); // Redirect to home page after successful login
-
+      const response = await authService.login({ email, password });
+      console.log('Login successful!', response.user);
+      navigate('/home');
     } catch (error) {
-      setErrorMessage('An error occurred during login.');
+      console.error('Login error:', error);
+      setErrorMessage(
+        error.response?.data?.message || 
+        'An error occurred during login. Please check your credentials and try again.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="login-container">
       <div className="login-form">
-        <img src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png" className="logo" />
+        <img 
+          src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png" 
+          alt="Logo"
+          className="logo" 
+        />
         <h2>Login</h2>
         {errorMessage && <p className="error-message">{errorMessage}</p>}
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label htmlFor="email">Email/Username:</label>
+            <label htmlFor="email">Email:</label>
             <input
-              type="text"
+              type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           <div className="form-group">
             <label htmlFor="password">Password:</label>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <span className="show-password" onClick={() => setShowPassword(!showPassword)}>
-              {showPassword ? 'Hide' : 'Show'}
-            </span>
+            <div className="password-input">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="toggle-password"
+                disabled={isLoading}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
-          <div className="form-group">
-            <input type="checkbox" id="rememberMe" />
-            <label htmlFor="rememberMe">Remember me</label>
-          </div>
-          <button type="submit" className="login-button">
-            Login
+          <button 
+            type="submit" 
+            className="login-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
-          <a href="#" className="forgot-password">
-            Forgot password?
-          </a>
         </form>
-        <p>
-          Don't have an account? <Link to="/signup">Sign up your company</Link>
+        <p className="signup-link">
+          Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
       </div>
     </div>
