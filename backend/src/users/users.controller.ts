@@ -199,10 +199,6 @@ export class UsersController {
     }
   }
 
-
-
-
-
   @Patch('profile')
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
