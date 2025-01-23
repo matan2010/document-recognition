@@ -1,29 +1,37 @@
-import React, { useState } from 'react';
-import Navbar from './Navbar';
-import '../styles/CreateClient.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
+import "../styles/CreateClientModern.css"; // Use a new CSS file for modern styling
 
 const CreateClient = () => {
-  const [email, setEmail] = useState('');
-  const [id, setId] = useState('');
-  const [name, setName] = useState('');
-  const [formError, setFormError] = useState('');
+  const [email, setEmail] = useState("");
+  const [id, setId] = useState("");
+  const [name, setName] = useState("");
+  const [formError, setFormError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     const payload = {
-      clientReferenceId: id, // Use the `id` field as `clientReferenceId`
+      clientReferenceId: id,
       name,
       email,
     };
 
-    const jwtToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im5vYW1Abm9hbS5jb20iLCJzdWIiOiI2NzYxZTFmYTIyYTcyMzA2ODRlZjkyZWQiLCJyb2xlIjoiYWRtaW4iLCJjb21wYW55SWQiOiI2NzYxZTFmYTIyYTcyMzA2ODRlZjkyZWMiLCJpYXQiOjE3MzQ2Mjk2MDksImV4cCI6MTczNDcxNjAwOX0.CjcVn3gAworl4V-KmEOecozO7DMyci0NqWb2sVm6OQ8'; // Replace with your actual JWT token
+    const jwtToken = localStorage.getItem("access_token");
+
+    if (!jwtToken) {
+      alert("You are not authorized. Redirecting to login.");
+      navigate("/login");
+      return;
+    }
 
     try {
-      const response = await fetch('http://localhost:8000/clients/', {
-        method: 'POST',
+      const response = await fetch("http://localhost:8000/clients/", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${jwtToken}`,
         },
         body: JSON.stringify(payload),
@@ -31,29 +39,29 @@ const CreateClient = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Client created successfully:', data);
-        alert('Client created successfully!');
+        console.log("Client created successfully:", data);
+        alert("Client created successfully!");
         // Reset the form
-        setEmail('');
-        setId('');
-        setName('');
-        setFormError('');
+        setEmail("");
+        setId("");
+        setName("");
+        setFormError("");
       } else {
-        console.error('Failed to create client:', response.statusText);
-        alert('Failed to create client.');
+        console.error("Failed to create client:", response.statusText);
+        alert("Failed to create client.");
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred while creating the client.');
+      console.error("Error:", error);
+      alert("An error occurred while creating the client.");
     }
   };
 
   const validateForm = () => {
     if (!email || !id || !name) {
-      setFormError('All fields are required.');
+      setFormError("All fields are required.");
       return false;
     }
-    setFormError('');
+    setFormError("");
     return true;
   };
 
