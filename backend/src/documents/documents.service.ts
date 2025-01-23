@@ -6,6 +6,7 @@ import { Document, Prisma } from '@prisma/client';
 import { FileService } from './services/file.service';
 import { IOcrService } from './interfaces/ocr.interface';
 import { OCR_SERVICE } from './providers/ocr.provider';
+import { JsonField } from '../common/utils/json-field.util';
 
 @Injectable()
 export class DocumentsService {
@@ -55,7 +56,7 @@ export class DocumentsService {
           filePath,
           fileHash: hash,
           status: 'PENDING',
-          metadata: {},
+          metadata: JsonField.serialize({}),
           client: {
             connect: {
               id: client.id  // Use the MongoDB ID we got from finding the client
@@ -86,35 +87,35 @@ export class DocumentsService {
         where: { id: documentId }
       });
 
-      const currentMetadata = document?.metadata as Record<string, any> || {};
+      const currentMetadata = JsonField.deserialize<Record<string, any>>(document?.metadata) || {};
 
       // Update status to processing
       await this.prisma.document.update({
         where: { id: documentId },
         data: { 
           status: 'PROCESSING',
-          metadata: {
+          metadata: JsonField.serialize({
             ...currentMetadata,
             processingStartedAt: new Date().toISOString()
-          }
+          })
         } as Prisma.DocumentUpdateInput
       });
 
       // Process with OCR
-      const result = await this.ocrService.processDocument(filePath);
+      const ocrResult = await this.ocrService.processDocument(filePath);
 
       // Update document with OCR results
       await this.prisma.document.update({
         where: { id: documentId },
         data: {
-          content: result.text,
+          content: ocrResult.text,
           status: 'COMPLETED',
-          metadata: {
+          metadata: JsonField.serialize({
             ...currentMetadata,
-            ...result.metadata,
-            confidence: result.confidence,
-            processedAt: new Date().toISOString()
-          }
+            confidence: ocrResult.confidence,
+            processingCompletedAt: new Date().toISOString(),
+            ...ocrResult.metadata
+          })
         } as Prisma.DocumentUpdateInput
       });
 
@@ -126,18 +127,19 @@ export class DocumentsService {
         where: { id: documentId }
       });
       
-      const currentMetadata = document?.metadata as Record<string, any> || {};
+      const currentMetadata = JsonField.deserialize<Record<string, any>>(document?.metadata) || {};
 
-      // Update document status to failed
+      // Update error status
       await this.prisma.document.update({
         where: { id: documentId },
         data: {
-          status: 'FAILED',
-          metadata: {
+          status: 'ERROR',
+          metadata: JsonField.serialize({
             ...currentMetadata,
             error: error.message,
-            failedAt: new Date().toISOString()
-          }
+            processingError: true,
+            processingErrorAt: new Date().toISOString()
+          })
         } as Prisma.DocumentUpdateInput
       });
     }
@@ -187,18 +189,18 @@ export class DocumentsService {
     try {
       const document = await this.findOne(id, companyId);
       
-      const currentMetadata = document.metadata as Record<string, any> || {};
+      const currentMetadata = JsonField.deserialize<Record<string, any>>(document.metadata) || {};
       
       return await this.prisma.document.update({
         where: { id },
         data: {
           content: updateDocumentDto.content,
           title: updateDocumentDto.title,
-          metadata: updateDocumentDto.metadata ? {
+          metadata: JsonField.serialize({
             ...currentMetadata,
             ...updateDocumentDto.metadata,
             lastUpdated: new Date().toISOString()
-          } : undefined
+          })
         } as Prisma.DocumentUpdateInput
       });
     } catch (error) {
