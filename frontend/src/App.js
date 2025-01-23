@@ -24,6 +24,7 @@ function App() {
           <Route path="/create-client" element={<CreateClient />} />
           <Route path="/home" element={<Home />} /> {/* Add Home route */}
           <Route path="/" element={<Login />} /> {/* Default path redirects to Login */}
+          <Route path="/download-component" element={<DownloadComponent />} /> {/* Default path redirects to Login */}
         </Routes>
       </div>
     </Router>

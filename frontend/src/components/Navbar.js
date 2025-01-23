@@ -35,6 +35,9 @@ const Navbar = () => {
         {location.pathname !== '/settings' && (
           <Link className={`navbar-link ${isActive('/settings')}`} to="/settings">Settings</Link>
         )}
+        {location.pathname !== '/download-component' && (
+            <Link className={`navbar-link ${isActive('/download-component')}`} to="/download-component">Upload Files</Link>
+        )}
         <button className="navbar-link logout-button" onClick={handleLogout}>Logout</button>
       </div>
     </div>
