@@ -41,66 +41,66 @@ export class MockOcrService implements IOcrService {
 
     private generateMockPdfData(fileName: string): OcrResult {
         return {
-            text: `Sample Invoice #12345\n
-                  Date: December 18, 2024\n
-                  Amount: $1,234.56\n
-                  Items:\n
-                  - Product A: $500\n
-                  - Product B: $734.56`,
+            text: `Sample Invoice #12345
+Date: December 18, 2024
+Amount: $1,234.56
+Items:
+- Product A: $500
+- Product B: $734.56`,
             confidence: 95.5,
             metadata: {
                 documentType: 'invoice',
-                processedAt: new Date().toISOString(),
-                pages: 2,
-                extractedFields: {
+                pageCount: 1,
+                fileName,
+                mimeType: 'application/pdf',
+                fields: {
                     invoiceNumber: '12345',
                     date: '2024-12-18',
-                    totalAmount: 1234.56,
-                    items: [
-                        { name: 'Product A', amount: 500 },
-                        { name: 'Product B', amount: 734.56 }
-                    ]
-                }
+                    amount: 1234.56
+                },
+                processingTime: new Date().toISOString()
             }
         };
     }
 
     private generateMockImageData(fileName: string): OcrResult {
         return {
-            text: `Business Card\n
-                  John Doe\n
-                  Software Engineer\n
-                  Email: john@example.com\n
-                  Phone: (555) 123-4567`,
-            confidence: 88.7,
+            text: `Receipt
+Store: Example Store
+Date: December 18, 2024
+Total: $45.99
+Payment Method: Credit Card
+Thank you for shopping!`,
+            confidence: 88.5,
             metadata: {
-                documentType: 'business_card',
-                processedAt: new Date().toISOString(),
-                imageQuality: 'high',
-                extractedFields: {
-                    name: 'John Doe',
-                    title: 'Software Engineer',
-                    email: 'john@example.com',
-                    phone: '(555) 123-4567'
-                }
+                documentType: 'receipt',
+                pageCount: 1,
+                fileName,
+                mimeType: 'image/jpeg',
+                fields: {
+                    store: 'Example Store',
+                    date: '2024-12-18',
+                    total: 45.99,
+                    paymentMethod: 'Credit Card'
+                },
+                processingTime: new Date().toISOString()
             }
         };
     }
 
     private generateMockGenericData(fileName: string): OcrResult {
         return {
-            text: `Generic Document\n
-                  This is a sample text extracted from ${fileName}\n
-                  Contains various information and data.`,
+            text: `Generic Document
+This is a sample text that would be extracted from a generic document.
+It contains multiple lines of text to simulate real OCR output.
+The quality and accuracy of the text extraction may vary depending on the document type and quality.`,
             confidence: 85.0,
             metadata: {
                 documentType: 'unknown',
-                processedAt: new Date().toISOString(),
-                fileName: fileName,
-                extractedFields: {
-                    title: 'Generic Document',
-                    content: 'Sample content'
-                }
+                pageCount: 1,
+                fileName,
+                mimeType: 'application/octet-stream',
+                processingTime: new Date().toISOString()
             }
         };
     }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -21,12 +21,31 @@ export class FileService {
         }
     }
 
+    isValidFile(file: Express.Multer.File): boolean {
+        if (!file) {
+            throw new BadRequestException('No file provided');
+        }
+
+        if (!file.buffer || file.buffer.length === 0) {
+            throw new BadRequestException('File is empty');
+        }
+
+        if (!this.allowedMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException(`Unsupported file type: ${file.mimetype}. Allowed types: ${this.allowedMimeTypes.join(', ')}`);
+        }
+
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            throw new BadRequestException(`File size too large. Maximum size is ${maxSize / (1024 * 1024)}MB`);
+        }
+
+        return true;
+    }
+
     async saveFile(file: Express.Multer.File, companyId: string): Promise<{ filePath: string; hash: string }> {
         try {
-            // Validate file type
-            if (!this.allowedMimeTypes.includes(file.mimetype)) {
-                throw new Error(`Unsupported file type: ${file.mimetype}`);
-            }
+            // Validate file
+            this.isValidFile(file);
 
             // Create company-specific directory
             const companyDir = path.join(this.uploadDir, companyId);
@@ -40,8 +59,9 @@ export class FileService {
                 .update(file.buffer)
                 .digest('hex');
 
-            // Create unique filename
-            const fileName = `${Date.now()}-${hash.substring(0, 8)}-${file.originalname}`;
+            // Create unique filename with sanitized original name
+            const sanitizedName = this.sanitizeFileName(file.originalname);
+            const fileName = `${Date.now()}-${hash.substring(0, 8)}-${sanitizedName}`;
             const filePath = path.join(companyDir, fileName);
 
             // Save file
@@ -49,10 +69,24 @@ export class FileService {
 
             this.logger.log(`File saved successfully: ${filePath}`);
             return { filePath, hash };
+
         } catch (error) {
             this.logger.error(`Failed to save file: ${error.message}`, error.stack);
             throw error;
         }
+    }
+
+    private sanitizeFileName(fileName: string): string {
+        // Remove any path components
+        fileName = path.basename(fileName);
+        
+        // Replace any non-alphanumeric characters (except dots and dashes) with underscores
+        fileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        
+        // Ensure the filename doesn't start with dots or dashes
+        fileName = fileName.replace(/^[.-]+/, '');
+        
+        return fileName;
     }
 
     async deleteFile(filePath: string): Promise<void> {
@@ -74,14 +108,5 @@ export class FileService {
             this.logger.error(`Failed to get file stats: ${filePath}`, error.stack);
             throw error;
         }
-    }
-
-    isValidFile(file: Express.Multer.File): boolean {
-        return (
-            file &&
-            file.buffer &&
-            file.originalname &&
-            this.allowedMimeTypes.includes(file.mimetype)
-        );
     }
 }
