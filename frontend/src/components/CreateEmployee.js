@@ -6,19 +6,47 @@ const CreateEmployee = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
+  const [companyId, setCompanyId] = useState(''); // הוספת שדה companyId
   const [roleError, setRoleError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!role) {
-      setRoleError('Role is required'); // הצגת שגיאה אם לא נבחר תפקיד
+      setRoleError('Role is required'); 
       return;
     }
 
-    // אם הכל תקין, להמשיך עם השאר
     setRoleError('');
-    console.log('Submitted:', { email, role, password });
+    
+    const userData = {
+      email,
+      password,
+      role,
+    };
+
+
+    try {
+      const response = await fetch('http://localhost:8000/users/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create employee');
+      }
+
+      console.log('Submitted:', userData);
+
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+
+
   };
 
   return (

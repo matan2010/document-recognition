@@ -12,10 +12,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['admin','normal'])
+  @IsIn(['admin','employee'])
   role: string;
 
-  @IsString()
-  @IsNotEmpty()
-  companyId: string;
 }
