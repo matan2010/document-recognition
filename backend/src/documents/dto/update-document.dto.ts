@@ -5,7 +5,7 @@ import { IsString, IsOptional, IsObject } from 'class-validator';
 export class UpdateDocumentDto extends PartialType(CreateDocumentDto) {
   @ApiPropertyOptional({
     description: 'Document title',
-    example: 'Updated Israeli ID Card'
+    example: 'Updated Israeli ID Card',
   })
   @IsOptional()
   @IsString()
@@ -13,7 +13,7 @@ export class UpdateDocumentDto extends PartialType(CreateDocumentDto) {
 
   @ApiPropertyOptional({
     description: 'Document content (OCR results)',
-    example: 'Text content extracted from the document'
+    example: 'Text content extracted from the document',
   })
   @IsOptional()
   @IsString()
@@ -25,8 +25,8 @@ export class UpdateDocumentDto extends PartialType(CreateDocumentDto) {
       documentType: 'ID_CARD',
       issueDate: '2024-01-19',
       expiryDate: '2034-01-19',
-      lastModifiedBy: 'user@example.com'
-    }
+      lastModifiedBy: 'user@example.com',
+    },
   })
   @IsOptional()
   @IsObject()

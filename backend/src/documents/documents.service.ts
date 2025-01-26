@@ -1,23 +1,21 @@
 import {
   Injectable,
-  NotFoundException,
   BadRequestException,
-  Logger,
-  Inject,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma, Document } from '@prisma/client';
+import { IOcrService } from './interfaces/ocr.interface';
+import { Inject } from '@nestjs/common';
+import { JsonField } from '../common/utils/json-field.util';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { Document, Prisma } from '@prisma/client';
 import { FileService } from './services/file.service';
-import { IOcrService } from './interfaces/ocr.interface';
-import { OCR_SERVICE } from './providers/ocr.provider';
-import { JsonField } from '../common/utils/json-field.util';
+import { OCR_SERVICE } from './constants';
+import * as fs from 'fs';
 
 @Injectable()
 export class DocumentsService {
-  private readonly logger = new Logger(DocumentsService.name);
-
   constructor(
     private prisma: PrismaService,
     private fileService: FileService,
@@ -30,8 +28,6 @@ export class DocumentsService {
     companyId: string,
   ): Promise<Document> {
     try {
-      this.logger.log(`Creating document for company: ${companyId}`);
-
       // Validate file
       if (!this.fileService.isValidFile(file)) {
         throw new BadRequestException('Invalid file provided');
@@ -57,20 +53,38 @@ export class DocumentsService {
         companyId,
       );
 
+      // Process with Document AI
+      const result = await this.ocrService.processDocument(filePath);
+      console.log('OCR Result:', JSON.stringify(result, null, 2));
+
+      const now = new Date().toISOString();
+      
       // Create document record
+      const documentMetadata = {
+        confidence: result.confidence,
+        processedAt: now,
+        documentType: 'ID_CARD', // Since we're processing Israeli ID cards
+        provider: result.metadata.provider || 'Mock OCR',
+        pages: result.metadata.pages || 1,
+        mimeType: result.metadata.mimeType || file.mimetype,
+        structuredData: result.metadata.structuredData,
+        rawResponse: result.metadata.rawResponse,
+      };
+      console.log('Document metadata to save:', JSON.stringify(documentMetadata, null, 2));
+
       const document = await this.prisma.document.create({
         data: {
           title: createDocumentDto.title || file.originalname,
-          content: '', // Will be updated after OCR
+          content: result.text,
           fileName: file.originalname,
           fileType: file.mimetype,
           filePath,
           fileHash: hash,
-          status: 'PENDING',
-          metadata: JsonField.serialize({}),
+          size: file.size,
+          metadata: JsonField.serialize(documentMetadata),
           client: {
             connect: {
-              id: client.id, // Use the MongoDB ID we got from finding the client
+              id: client.id,
             },
           },
           company: {
@@ -78,99 +92,23 @@ export class DocumentsService {
               id: companyId,
             },
           },
+          status: 'PROCESSED',
         } as Prisma.DocumentCreateInput,
       });
 
-      // Process document with OCR asynchronously
-      await this.processDocumentAsync(document.id, filePath);
-
       return document;
     } catch (error) {
-      this.logger.error(
-        `Failed to create document: ${error.message}`,
-        error.stack,
-      );
+      console.error('Error processing document:', error);
       throw error;
-    }
-  }
-
-  private async processDocumentAsync(
-    documentId: string,
-    filePath: string,
-  ): Promise<void> {
-    try {
-      // Get current document to access existing metadata
-      const document = await this.prisma.document.findUnique({
-        where: { id: documentId },
-      });
-
-      const currentMetadata =
-        JsonField.deserialize<Record<string, any>>(document?.metadata) || {};
-
-      // Update status to processing
-      await this.prisma.document.update({
-        where: { id: documentId },
-        data: {
-          status: 'PROCESSING',
-          metadata: JsonField.serialize({
-            ...currentMetadata,
-            processingStartedAt: new Date().toISOString(),
-          }),
-        } as Prisma.DocumentUpdateInput,
-      });
-
-      // Process with OCR
-      const ocrResult = await this.ocrService.processDocument(filePath);
-
-      // Update document with OCR results
-      await this.prisma.document.update({
-        where: { id: documentId },
-        data: {
-          content: ocrResult.text,
-          status: 'COMPLETED',
-          metadata: JsonField.serialize({
-            ...currentMetadata,
-            confidence: ocrResult.confidence,
-            processingCompletedAt: new Date().toISOString(),
-            ...ocrResult.metadata,
-          }),
-        } as Prisma.DocumentUpdateInput,
-      });
-
-      this.logger.log(`Document processed successfully: ${documentId}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to process document: ${documentId}`,
-        error.stack,
-      );
-
-      const document = await this.prisma.document.findUnique({
-        where: { id: documentId },
-      });
-
-      const currentMetadata =
-        JsonField.deserialize<Record<string, any>>(document?.metadata) || {};
-
-      // Update error status
-      await this.prisma.document.update({
-        where: { id: documentId },
-        data: {
-          status: 'ERROR',
-          metadata: JsonField.serialize({
-            ...currentMetadata,
-            error: error.message,
-            processingError: true,
-            processingErrorAt: new Date().toISOString(),
-          }),
-        } as Prisma.DocumentUpdateInput,
-      });
     }
   }
 
   async findAll(companyId: string): Promise<Document[]> {
     try {
       return await this.prisma.document.findMany({
-        where: { companyId },
+        where: {
+          companyId,
+        },
         include: {
           client: true,
         },
@@ -179,10 +117,7 @@ export class DocumentsService {
         },
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to find documents: ${error.message}`,
-        error.stack,
-      );
+      console.error('Error fetching documents:', error);
       throw error;
     }
   }
@@ -205,10 +140,27 @@ export class DocumentsService {
 
       return document;
     } catch (error) {
-      this.logger.error(
-        `Failed to find document: ${error.message}`,
-        error.stack,
-      );
+      console.error(`Error fetching document ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async findByClientId(
+    clientId: string,
+    companyId: string,
+  ): Promise<Document[]> {
+    try {
+      return await this.prisma.document.findMany({
+        where: {
+          clientId,
+          companyId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    } catch (error) {
+      console.error(`Error fetching documents for client ${clientId}:`, error);
       throw error;
     }
   }
@@ -220,15 +172,19 @@ export class DocumentsService {
   ): Promise<Document> {
     try {
       const document = await this.findOne(id, companyId);
-
       const currentMetadata =
         JsonField.deserialize<Record<string, any>>(document.metadata) || {};
 
       return await this.prisma.document.update({
-        where: { id },
+        where: {
+          id: id,
+          AND: {
+            companyId: companyId,
+          },
+        },
         data: {
-          content: updateDocumentDto.content,
           title: updateDocumentDto.title,
+          content: updateDocumentDto.content,
           metadata: JsonField.serialize({
             ...currentMetadata,
             ...updateDocumentDto.metadata,
@@ -237,34 +193,30 @@ export class DocumentsService {
         } as Prisma.DocumentUpdateInput,
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to update document: ${error.message}`,
-        error.stack,
-      );
+      console.error(`Error updating document ${id}:`, error);
       throw error;
     }
   }
 
   async remove(id: string, companyId: string) {
     try {
-      // First verify document exists and belongs to company
       const document = await this.findOne(id, companyId);
 
-      // Delete file if it exists
-      if (document.filePath) {
+      if (document?.filePath) {
         try {
           await this.fileService.deleteFile(document.filePath);
         } catch (error) {
-          this.logger.warn(
-            `Failed to delete file for document ${id}: ${error.message}`,
-          );
-          // Continue with document deletion even if file deletion fails
+          console.error('Error deleting file:', error);
         }
       }
 
-      // Delete document record
       const deletedDocument = await this.prisma.document.delete({
-        where: { id },
+        where: {
+          id: id,
+          AND: {
+            companyId: companyId,
+          },
+        },
         include: {
           client: {
             select: {
@@ -287,18 +239,89 @@ export class DocumentsService {
         },
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to delete document: ${error.message}`,
-        error.stack,
-      );
+      console.error(`Error deleting document ${id}:`, error);
+      throw error;
+    }
+  }
 
-      if (error instanceof NotFoundException) {
-        throw error;
+  async processDocument(
+    file: Express.Multer.File,
+    clientId: string,
+    companyId: string,
+  ): Promise<Document> {
+    try {
+      // Validate file
+      if (!this.fileService.isValidFile(file)) {
+        throw new BadRequestException('Invalid file provided');
       }
 
-      throw new BadRequestException(
-        `Failed to delete document: ${error.message}`,
+      // Find the client first
+      const client = await this.prisma.client.findFirst({
+        where: {
+          companyId,
+          clientReferenceId: clientId,
+        },
+      });
+
+      if (!client) {
+        throw new NotFoundException(
+          `Client with reference ID ${clientId} not found in your company`,
+        );
+      }
+
+      // Save file
+      const { filePath, hash } = await this.fileService.saveFile(
+        file,
+        companyId,
       );
+
+      // Process with Document AI
+      const result = await this.ocrService.processDocument(filePath);
+      console.log('OCR Result:', JSON.stringify(result, null, 2));
+
+      const now = new Date().toISOString();
+      
+      // Create document record
+      const documentMetadata = {
+        confidence: result.confidence,
+        processedAt: now,
+        documentType: 'ID_CARD', // Since we're processing Israeli ID cards
+        provider: result.metadata.provider || 'Mock OCR',
+        pages: result.metadata.pages || 1,
+        mimeType: result.metadata.mimeType || file.mimetype,
+        structuredData: result.metadata.structuredData,
+        rawResponse: result.metadata.rawResponse,
+      };
+      console.log('Document metadata to save:', JSON.stringify(documentMetadata, null, 2));
+
+      const document = await this.prisma.document.create({
+        data: {
+          title: file.originalname,
+          content: result.text,
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          filePath,
+          fileHash: hash,
+          size: file.size,
+          metadata: JsonField.serialize(documentMetadata),
+          client: {
+            connect: {
+              id: client.id,
+            },
+          },
+          company: {
+            connect: {
+              id: companyId,
+            },
+          },
+          status: 'PROCESSED',
+        } as Prisma.DocumentCreateInput,
+      });
+
+      return document;
+    } catch (error) {
+      console.error('Error processing document:', error);
+      throw error;
     }
   }
 }

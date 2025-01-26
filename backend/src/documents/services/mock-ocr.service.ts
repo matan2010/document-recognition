@@ -41,24 +41,75 @@ export class MockOcrService implements IOcrService {
 
     private generateMockPdfData(fileName: string): OcrResult {
         return {
-            text: `Sample Invoice #12345
-Date: December 18, 2024
-Amount: $1,234.56
-Items:
-- Product A: $500
-- Product B: $734.56`,
-            confidence: 95.5,
+            text: `Israeli ID Card
+Last Name: ישראלי
+First Name: ישראל
+Birth Date: 15.09.1976
+Issue Date: 10.10.2011
+ID Number: 123456789
+Valid Until: 10.10.2021`,
+            confidence: 0.9992,
             metadata: {
-                documentType: 'invoice',
-                pageCount: 1,
-                fileName,
+                processedAt: new Date().toISOString(),
+                provider: 'mock-ocr',
+                documentType: 'id_card',
+                pages: 1,
                 mimeType: 'application/pdf',
-                fields: {
-                    invoiceNumber: '12345',
-                    date: '2024-12-18',
-                    amount: 1234.56
+                structuredData: {
+                    'last_name': 'ישראלי',
+                    'first_name': 'ישראל',
+                    'birth_date': '1976-09-15',
+                    'issue_date': '2011-10-10',
+                    'id': '123456789',
+                    'valid_until': '2021-10-10'
                 },
-                processingTime: new Date().toISOString()
+                rawResponse: {
+                    entities: [
+                        {
+                            type: 'ID',
+                            mentionText: '123456789',
+                            confidence: 0.9992712140083313,
+                            normalizedValue: { text: '123456789' }
+                        },
+                        {
+                            type: 'Issue_date',
+                            mentionText: '10.10.2011',
+                            confidence: 0.9999779462814331,
+                            normalizedValue: {
+                                text: '2011-10-10',
+                                dateValue: { year: 2011, month: 10, day: 10 }
+                            }
+                        },
+                        {
+                            type: 'birth_date',
+                            mentionText: '15.09.1976',
+                            confidence: 0.9999957084655762,
+                            normalizedValue: {
+                                text: '1976-09-15',
+                                dateValue: { year: 1976, month: 9, day: 15 }
+                            }
+                        },
+                        {
+                            type: 'first_name',
+                            mentionText: 'ישראל',
+                            confidence: 0.9999934434890747
+                        },
+                        {
+                            type: 'last_name',
+                            mentionText: 'ישראלי',
+                            confidence: 0.9999982118606567
+                        },
+                        {
+                            type: 'valid_until',
+                            mentionText: '10.10.2021',
+                            confidence: 0.9999940395355225,
+                            normalizedValue: {
+                                text: '2021-10-10',
+                                dateValue: { year: 2021, month: 10, day: 10 }
+                            }
+                        }
+                    ]
+                }
             }
         };
     }
@@ -73,17 +124,23 @@ Payment Method: Credit Card
 Thank you for shopping!`,
             confidence: 88.5,
             metadata: {
+                processedAt: new Date().toISOString(),
+                provider: 'mock-ocr',
                 documentType: 'receipt',
-                pageCount: 1,
-                fileName,
+                pages: 1,
                 mimeType: 'image/jpeg',
-                fields: {
-                    store: 'Example Store',
-                    date: '2024-12-18',
-                    total: 45.99,
-                    paymentMethod: 'Credit Card'
+                structuredData: {
+                    'Receipt Number': 'RCP-001',
+                    'Date': '2024-01-25',
+                    'Total': '$123.45',
+                    'Store': 'Local Store',
                 },
-                processingTime: new Date().toISOString()
+                rawResponse: `Receipt
+Store: Example Store
+Date: December 18, 2024
+Total: $45.99
+Payment Method: Credit Card
+Thank you for shopping!`,
             }
         };
     }
@@ -96,11 +153,16 @@ It contains multiple lines of text to simulate real OCR output.
 The quality and accuracy of the text extraction may vary depending on the document type and quality.`,
             confidence: 85.0,
             metadata: {
+                processedAt: new Date().toISOString(),
+                provider: 'mock-ocr',
                 documentType: 'unknown',
-                pageCount: 1,
-                fileName,
+                pages: 1,
                 mimeType: 'application/octet-stream',
-                processingTime: new Date().toISOString()
+                structuredData: {},
+                rawResponse: `Generic Document
+This is a sample text that would be extracted from a generic document.
+It contains multiple lines of text to simulate real OCR output.
+The quality and accuracy of the text extraction may vary depending on the document type and quality.`,
             }
         };
     }
