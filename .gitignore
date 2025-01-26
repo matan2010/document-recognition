@@ -2,4 +2,7 @@ node_modules
 
 .env
 
+# Google Cloud credentials
+backend/credentials/
+*.json.key
 google-credentials.json
