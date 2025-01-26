@@ -56,6 +56,7 @@ model Document {
   fileType      String?
   filePath      String?
   fileHash      String?
+  size          Int?     // File size in bytes
   status        String   @default("PENDING")
   metadata      String?  // JSON stored as string in SQLite
   client        Client   @relation(fields: [clientId], references: [id])
