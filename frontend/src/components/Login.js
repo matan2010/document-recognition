@@ -1,88 +1,127 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  CircularProgress,
+  Link,
+} from "@mui/material";
 import authService from "../services/auth.service";
-import "../styles/Login.css";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    setErrorMessage("");
-    setIsLoading(true);
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      if (authService.isAuthenticated()) {
+        try {
+          await authService.verifyToken();
+          // If verification succeeds, redirect to intended page or home
+          const from = location.state?.from?.pathname || "/home";
+          navigate(from, { replace: true });
+        } catch (error) {
+          // If verification fails, clear storage and stay on login page
+          authService.clearStorage();
+        }
+      }
+    };
+
+    checkAuth();
+  }, [navigate, location]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
-      console.log("Login successful!", response.user);
-      navigate("/home");
+      await authService.login(email, password);
+      // Redirect to intended page or home
+      const from = location.state?.from?.pathname || "/home";
+      navigate(from, { replace: true });
     } catch (error) {
-      console.error("Login error:", error);
-      setErrorMessage(
-        error.response?.data?.message ||
-          "An error occurred during login. Please check your credentials and try again."
-      );
+      setError(error.message || "Login failed. Please check your credentials.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <img
-          src="https://www.pond-planet.co.uk/blog/wp-content/uploads/2023/12/Untitled-90.png"
-          alt="Logo"
-          className="logo"
-        />
-        <h2>Login</h2>
-        {errorMessage && <p className="error-message">{errorMessage}</p>}
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input
+    <Container maxWidth="sm">
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          py: 4,
+        }}
+      >
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Typography variant="h4" component="h1" align="center" gutterBottom>
+            Login
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Email"
               type="email"
-              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              margin="normal"
               required
-              disabled={isLoading}
+              autoComplete="email"
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password:</label>
-            <div className="password-input">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="toggle-password"
-                disabled={isLoading}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-        <p className="signup-link">
-          Don't have an account? <Link to="/signup">Sign up</Link>
-        </p>
-      </div>
-    </div>
+
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin="normal"
+              required
+              autoComplete="current-password"
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              size="large"
+              disabled={loading}
+              sx={{ mt: 3 }}
+            >
+              {loading ? <CircularProgress size={24} /> : "Login"}
+            </Button>
+          </form>
+
+          <Box sx={{ mt: 2, textAlign: "center" }}>
+            <Link href="/signup" variant="body2">
+              Don't have an account? Sign up
+            </Link>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
   );
 };
 

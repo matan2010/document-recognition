@@ -1,33 +1,127 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'; // Import Router components
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Login from './components/Login';
+import Home from './pages/Home';
+import CreateClient from './components/CreateClient';
+import CreateEmployee from './components/CreateEmployee';
+import PhotoUpload from './pages/PhotoUpload';
+import ClientPage from './pages/ClientPage';
+import PrivateRoute from './components/PrivateRoute';
+import Settings from './components/Settings';
+import Profile from './pages/Profile';
+import DownloadComponent from './components/DownloadComponent';
+import SignUp from './components/SignUp';
+import SignUpCompany from './components/SignUpCompany';
 
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    fontFamily: [
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+    ].join(','),
+  },
+});
 
-import './App.css';
-import Login from './components/Login'; 
-import DownloadComponent  from './components/DownloadComponent'; 
-import SignUpCompany  from './components/SignUpCompany';
-import SignUp  from './components/SignUp';  
-import Settings  from './components/Settings'; 
-import Home from './components/Home';
-//import ClientCard  from './components/ClientCard'; 
-import CreateEmployee  from './components/CreateEmployee';
-import CreateClient  from './components/CreateClient';
 function App() {
   return (
-    <Router>
-      <div className="App">
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
         <Routes>
-          <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/create-employee" element={<CreateEmployee />} />
-          <Route path="/create-client" element={<CreateClient />} />
-          <Route path="/home" element={<Home />} /> {/* Add Home route */}
-          <Route path="/" element={<Login />} /> {/* Default path redirects to Login */}
-          <Route path="/download-component" element={<DownloadComponent />} /> {/* Default path redirects to Login */}
+          <Route path="/signup-company" element={<SignUpCompany />} />
+          <Route path="/download-component" element={<DownloadComponent />} />
+          <Route path="/" element={<Login />} />
+          
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/create-client"
+            element={
+              <PrivateRoute>
+                <CreateClient />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/create-employee"
+            element={
+              <PrivateRoute>
+                <CreateEmployee />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/upload-photos"
+            element={
+              <PrivateRoute>
+                <PhotoUpload />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/client/:clientId"
+            element={
+              <PrivateRoute>
+                <ClientPage />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <Settings />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Catch all route - redirect to home if authenticated, login if not */}
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

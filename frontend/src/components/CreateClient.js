@@ -1,121 +1,192 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Alert,
+  Snackbar,
+  CircularProgress,
+} from "@mui/material";
 import Navbar from "./Navbar";
-import "../styles/CreateClientModern.css"; // Use a new CSS file for modern styling
+import ClientService from "../services/client.service";
 
 const CreateClient = () => {
-  const [email, setEmail] = useState("");
-  const [id, setId] = useState("");
-  const [name, setName] = useState("");
-  const [formError, setFormError] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    clientReferenceId: "",
+    name: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const navigate = useNavigate();
 
+  // Check authentication
+  if (!localStorage.getItem("access_token")) {
+    navigate("/");
+    return null;
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const validateForm = () => {
+    const { email, clientReferenceId, name } = formData;
+    if (!email || !clientReferenceId || !name) {
+      setNotification({
+        open: true,
+        message: "All fields are required",
+        severity: "error",
+      });
+      return false;
+    }
+
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setNotification({
+        open: true,
+        message: "Please enter a valid email address",
+        severity: "error",
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const payload = {
-      clientReferenceId: id,
-      name,
-      email,
-    };
-
-    const jwtToken = localStorage.getItem("access_token");
-
-    if (!jwtToken) {
-      alert("You are not authorized. Redirecting to login.");
-      navigate("/login");
+    if (!validateForm()) {
       return;
     }
 
+    setLoading(true);
+
     try {
-      const response = await fetch("http://localhost:8000/clients/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${jwtToken}`,
-        },
-        body: JSON.stringify(payload),
+      const response = await ClientService.createClient(formData);
+      console.log("Client created successfully:", response);
+
+      setNotification({
+        open: true,
+        message: "Client created successfully!",
+        severity: "success",
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Client created successfully:", data);
-        alert("Client created successfully!");
-        // Reset the form
-        setEmail("");
-        setId("");
-        setName("");
-        setFormError("");
-      } else {
-        console.error("Failed to create client:", response.statusText);
-        alert("Failed to create client.");
-      }
+      // Reset form
+      setFormData({
+        email: "",
+        clientReferenceId: "",
+        name: "",
+      });
+
+      // Navigate to clients list after short delay
+      setTimeout(() => {
+        navigate("/home");
+      }, 2000);
     } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred while creating the client.");
+      console.error("Error creating client:", error);
+      setNotification({
+        open: true,
+        message: error.response?.data?.message || "Error creating client",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const validateForm = () => {
-    if (!email || !id || !name) {
-      setFormError("All fields are required.");
-      return false;
-    }
-    setFormError("");
-    return true;
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   return (
-    <div className="create-client-container">
+    <>
       <Navbar />
-      <h1>Create Client</h1>
-      <form
-        onSubmit={(e) => {
-          if (validateForm()) handleSubmit(e);
-        }}
-        className="create-client-form"
-      >
-        <div className="form-field">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+      <Container maxWidth="sm" sx={{ mt: 4 }}>
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Typography variant="h4" gutterBottom align="center">
+            Create New Client
+          </Typography>
 
-        <div className="form-field">
-          <label htmlFor="id">Client ID:</label>
-          <input
-            type="text"
-            id="id"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            required
-          />
-        </div>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Client Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              margin="normal"
+              required
+              autoFocus
+            />
 
-        <div className="form-field">
-          <label htmlFor="name">Name:</label>
-          <input
-            type="text"
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
+            <TextField
+              fullWidth
+              label="Client Reference ID"
+              name="clientReferenceId"
+              value={formData.clientReferenceId}
+              onChange={handleChange}
+              margin="normal"
+              required
+              helperText="A unique identifier for this client"
+            />
 
-        {formError && <p className="error-message">{formError}</p>}
+            <TextField
+              fullWidth
+              type="email"
+              label="Email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              margin="normal"
+              required
+              helperText="Client's email address"
+            />
 
-        <div className="form-actions">
-          <button type="submit">Create Client</button>
-        </div>
-      </form>
-    </div>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Create Client"
+              )}
+            </Button>
+          </Box>
+        </Paper>
+
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={6000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleCloseNotification}
+            severity={notification.severity}
+            sx={{ width: "100%" }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </>
   );
 };
 
