@@ -56,18 +56,33 @@ const SignUp = () => {
 
     setIsLoading(true);
     try {
-      console.log("Signing up with:", formData);
+      console.log("Signing up with:", {
+        companyName: formData.companyName,
+        adminEmail: formData.adminEmail,
+        adminPassword: "********" // Don't log the actual password
+      });
+      
       const response = await authService.bootstrap({
         companyName: formData.companyName,
         adminEmail: formData.adminEmail,
         adminPassword: formData.adminPassword,
       });
 
-      console.log("Registration successful:", response);
-      navigate("/login");
+      console.log("Registration successful");
+      // Show success message before redirecting
+      setErrorMessage("Registration successful! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
     } catch (error) {
-      console.log("Registration error:", error);
-      setErrorMessage(error.response?.data?.message || "Registration failed. Please try again.");
+      console.error("Registration error:", error);
+      if (error.message === "Network Error") {
+        setErrorMessage("Unable to connect to the server. Please check your internet connection.");
+      } else if (error.response?.data?.message) {
+        setErrorMessage(error.response.data.message);
+      } else {
+        setErrorMessage("Registration failed. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
