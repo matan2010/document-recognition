@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { FileService } from './services/file.service';
 import { OcrServiceProvider } from './providers/ocr.provider';
+import { GoogleCloudConfig } from '../config/google-cloud.config';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { OcrServiceProvider } from './providers/ocr.provider';
   providers: [
     DocumentsService,
     FileService,
-    OcrServiceProvider
+    OcrServiceProvider,
+    GoogleCloudConfig
   ],
   exports: [DocumentsService]
 })
