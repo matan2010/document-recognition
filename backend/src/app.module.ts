@@ -6,6 +6,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { UsersModule } from './users/users.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ClientsModule } from './clients/clients.module';
+import { GoogleCloudConfig } from './config/google-cloud.config'; // Add this line
 
 @Module({
   imports: [
@@ -17,8 +18,8 @@ import { ClientsModule } from './clients/clients.module';
     CompaniesModule,
     DocumentsModule,
     UsersModule,
-    ClientsModule
+    ClientsModule,
   ],
+  providers: [GoogleCloudConfig],
 })
 export class AppModule {}
-
