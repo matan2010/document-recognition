@@ -70,8 +70,9 @@ const CreateEmployee = () => {
   };
 
   return (
-    <div className="create-employee-container">
+    <div>
       <Navbar />
+      <div className="create-employee-container">
       <h1>Create Employee</h1>
       <form onSubmit={handleSubmit} className="create-employee-form">
         <div className="form-field">
@@ -131,6 +132,7 @@ const CreateEmployee = () => {
 
         {errorMessage && <p className="error-message">{errorMessage}</p>}
       </form>
+    </div>
     </div>
   );
 };
