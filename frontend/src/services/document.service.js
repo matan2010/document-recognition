@@ -50,6 +50,7 @@ class DocumentService {
     const requestBody = {
       clientId: documentData.clientId,
       title: documentData.title,
+      documentType: documentData.documentType || 'id',
       //metadata: documentData.metadata || {},
     };
 

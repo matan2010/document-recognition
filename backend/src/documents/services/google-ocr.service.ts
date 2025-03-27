@@ -5,17 +5,20 @@ import { GoogleCloudConfig } from '../../config/google-cloud.config';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Import processors configuration
+import * as processors from './processors.json';
+
 @Injectable()
 export class GoogleOcrService implements IOcrService {
   private readonly logger = new Logger(GoogleOcrService.name);
   private readonly client: DocumentProcessorServiceClient;
-  private readonly location: string;
-  private readonly processorId: string;
+  // private readonly location: string;
+  // private readonly processorId: string;
 
   constructor(private googleConfig: GoogleCloudConfig) {
     try {
-      this.location = this.googleConfig.getDocumentAILocation();
-      this.processorId = this.googleConfig.getDocumentAIProcessorId();
+      // this.location = this.googleConfig.getDocumentAILocation();
+      // this.processorId = this.googleConfig.getDocumentAIProcessorId();
 
       const credentialsPath = this.googleConfig.getCredentialsPath();
       this.logger.log('Initializing Document AI client');
@@ -31,9 +34,9 @@ export class GoogleOcrService implements IOcrService {
     }
   }
 
-  async processDocument(filePath: string): Promise<OcrResult> {
+  async processDocument(filePath: string, documentType: string = 'id'): Promise<OcrResult> {
     try {
-      this.logger.log(`Starting Document AI processing for file: ${filePath}`);
+      this.logger.log(`Starting Document AI processing for file: ${filePath} with document type: ${documentType}`);
 
       // Validate file exists and is readable
       if (!(await this.validateDocument(filePath))) {
@@ -43,15 +46,17 @@ export class GoogleOcrService implements IOcrService {
       // Read the file into a buffer
       const buffer = await fs.promises.readFile(filePath);
       const mimeType = this.getMimeType(filePath);
-
       this.logger.log(
         `File read successfully. Size: ${buffer.length} bytes, MIME type: ${mimeType}`,
       );
 
       // Get project ID from credentials
       const projectId = await this.googleConfig.getProjectId();
-      const name = `projects/${projectId}/locations/${this.location}/processors/${this.processorId}`;
 
+      //get processor id from according document type
+      const processor = processors[documentType];
+      
+      const name = `projects/${projectId}/locations/${processor.location}/processors/${processor.id}`;
       this.logger.log(`Using processor: ${name}`);
 
       // Configure the request
@@ -64,94 +69,93 @@ export class GoogleOcrService implements IOcrService {
       };
 
       this.logger.log('Sending request to Document AI...');
+      //throw new Error('test test test test');      // Process the document
+        const [result] = await this.client.processDocument(request);
 
-      // Process the document
-      const [result] = await this.client.processDocument(request);
-
-      if (!result.document) {
-        throw new Error('No document in response from Document AI');
-      }
-
-      const document = result.document;
-      this.logger.log(
-        'Document processed successfully. Pages:',
-        document.pages?.length,
-      );
-
-      // Calculate average confidence
-      let confidence = 0;
-      if (document.pages && document.pages.length > 0) {
-        confidence =
-          document.pages.reduce(
-            (acc, page) => acc + (page.layout?.confidence || 0),
-            0,
-          ) / document.pages.length;
-      }
-
-      // Extract structured data from the document
-      const extractStructuredData = (doc) => {
-        const structuredData = {};
-        
-        if (doc.pages) {
-          doc.pages.forEach((page, pageIndex) => {
-            // Extract form fields
-            page.formFields?.forEach(field => {
-              if (field.fieldName?.textAnchor?.content && field.fieldValue?.textAnchor?.content) {
-                structuredData[field.fieldName.textAnchor.content.trim()] = field.fieldValue.textAnchor.content.trim();
-              }
-            });
-
-            // Extract entities
-            page.entities?.forEach(entity => {
-              if (entity.type && entity.mentionText) {
-                structuredData[`${entity.type}`] = entity.mentionText;
-              }
-            });
-
-            // Try to identify key-value pairs in paragraphs
-            page.paragraphs?.forEach(paragraph => {
-              const text = paragraph.textAnchor?.content || '';
-              const keyValueMatch = text.match(/^([^:]+):(.+)$/);
-              if (keyValueMatch) {
-                const [, key, value] = keyValueMatch;
-                const trimmedKey = key.trim();
-                const trimmedValue = value.trim();
-                if (trimmedKey && trimmedValue && !structuredData[trimmedKey]) {
-                  structuredData[trimmedKey] = trimmedValue;
-                }
-              }
-            });
-          });
+        if (!result.document) {
+          throw new Error('No document in response from Document AI');
         }
-        
-        return structuredData;
-      };
 
-      const structuredData = extractStructuredData(document);
-      const response = {
-        text: document.text || '',
-        confidence: confidence,
-        metadata: {
-          processedAt: new Date().toISOString(),
-          provider: 'google-document-ai',
-          pages: document.pages?.length || 0,
-          mimeType: document.mimeType,
-          structuredData,
-          rawResponse: document,
-        },
-      };
+        const document = result.document;
+        this.logger.log(
+          'Document processed successfully. Pages:',
+          document.pages?.length,
+        );
 
-      this.logger.log('Successfully created response object');
-      return response;
-    } catch (error) {
-      this.logger.error('Document AI processing failed:', {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        stack: error.stack,
-      });
-      throw error;
-    }
+        // Calculate average confidence
+        let confidence = 0;
+        if (document.pages && document.pages.length > 0) {
+          confidence =
+            document.pages.reduce(
+              (acc, page) => acc + (page.layout?.confidence || 0),
+              0,
+            ) / document.pages.length;
+        }
+
+        // Extract structured data from the document
+        const extractStructuredData = (doc) => {
+          const structuredData = {};
+          
+          if (doc.pages) {
+            doc.pages.forEach((page, pageIndex) => {
+              // Extract form fields
+              page.formFields?.forEach(field => {
+                if (field.fieldName?.textAnchor?.content && field.fieldValue?.textAnchor?.content) {
+                  structuredData[field.fieldName.textAnchor.content.trim()] = field.fieldValue.textAnchor.content.trim();
+                }
+              });
+
+              // Extract entities
+              page.entities?.forEach(entity => {
+                if (entity.type && entity.mentionText) {
+                  structuredData[`${entity.type}`] = entity.mentionText;
+                }
+              });
+
+              // Try to identify key-value pairs in paragraphs
+              page.paragraphs?.forEach(paragraph => {
+                const text = paragraph.textAnchor?.content || '';
+                const keyValueMatch = text.match(/^([^:]+):(.+)$/);
+                if (keyValueMatch) {
+                  const [, key, value] = keyValueMatch;
+                  const trimmedKey = key.trim();
+                  const trimmedValue = value.trim();
+                  if (trimmedKey && trimmedValue && !structuredData[trimmedKey]) {
+                    structuredData[trimmedKey] = trimmedValue;
+                  }
+                }
+              });
+            });
+          }
+          
+          return structuredData;
+        };
+
+        const structuredData = extractStructuredData(document);
+        const response = {
+          text: document.text || '',
+          confidence: confidence,
+          metadata: {
+            processedAt: new Date().toISOString(),
+            provider: 'google-document-ai',
+            pages: document.pages?.length || 0,
+            mimeType: document.mimeType,
+            structuredData,
+            rawResponse: document,
+          },
+        };
+
+        this.logger.log('Successfully created response object');
+        return response;
+      } catch (error) {
+        this.logger.error('Document AI processing failed:', {
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          stack: error.stack,
+        });
+        throw error;
+      }
   }
 
   private getMimeType(filePath: string): string {

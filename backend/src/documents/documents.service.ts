@@ -54,7 +54,7 @@ export class DocumentsService {
       );
 
       // Process with Document AI
-      const result = await this.ocrService.processDocument(filePath);
+      const result = await this.ocrService.processDocument(filePath, 'id');
       console.log('OCR Result:', JSON.stringify(result, null, 2));
 
       const now = new Date().toISOString();
@@ -248,6 +248,7 @@ export class DocumentsService {
     file: Express.Multer.File,
     clientId: string,
     companyId: string,
+    documentType?: string,
   ): Promise<Document> {
     try {
       // Validate file
@@ -275,9 +276,9 @@ export class DocumentsService {
         companyId,
       );
 
-      // Process with Document AI
-      const result = await this.ocrService.processDocument(filePath);
-      console.log('OCR Result:', JSON.stringify(result, null, 2));
+      // Process with Document AI using the specified document type
+      const result = await this.ocrService.processDocument(filePath, documentType);
+      // console.log('OCR Result:', JSON.stringify(result, null, 2));
 
       const now = new Date().toISOString();
       
@@ -285,14 +286,14 @@ export class DocumentsService {
       const documentMetadata = {
         confidence: result.confidence,
         processedAt: now,
-        documentType: 'ID_CARD', // Since we're processing Israeli ID cards
+        documentType: documentType || 'ID_CARD', // Since we're processing Israeli ID cards
         provider: result.metadata.provider || 'Mock OCR',
         pages: result.metadata.pages || 1,
         mimeType: result.metadata.mimeType || file.mimetype,
         structuredData: result.metadata.structuredData,
         rawResponse: result.metadata.rawResponse,
       };
-      console.log('Document metadata to save:', JSON.stringify(documentMetadata, null, 2));
+      //console.log('Document metadata to save:', JSON.stringify(documentMetadata, null, 2));
 
       const document = await this.prisma.document.create({
         data: {

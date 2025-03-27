@@ -1,5 +1,12 @@
-import { IsString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+// Define valid document types
+export enum DocumentType {
+  ID = 'id',
+  PASSPORT = 'passport',
+  DRIVERS_LICENSE = 'driversLicense'
+}
 
 export class CreateDocumentDto {
   @ApiProperty({
@@ -16,10 +23,19 @@ export class CreateDocumentDto {
   @IsString()
   title: string;
 
+  @ApiProperty({
+    description: 'Type of document to process',
+    enum: DocumentType,
+    example: DocumentType.ID,
+    default: DocumentType.ID
+  })
+  @IsEnum(DocumentType)
+  @IsOptional()
+  documentType?: DocumentType = DocumentType.ID;
+
   @ApiPropertyOptional({
     description: 'Additional metadata for the document',
     example: {
-      documentType: 'ID_CARD',
       issueDate: '2024-01-19',
       expiryDate: '2034-01-19'
     }

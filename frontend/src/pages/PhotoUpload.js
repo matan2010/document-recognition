@@ -32,6 +32,7 @@ const PhotoUpload = () => {
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [title, setTitle] = useState("");
+  const [documentType, setDocumentType] = useState("id"); // Default document type
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -111,6 +112,7 @@ const PhotoUpload = () => {
         file: fileObj.file,
         clientId: selectedClient, // Use clientReferenceId for the backend
         title,
+        documentType, // Add the selected document type
         metadata,
       };
 
@@ -237,6 +239,21 @@ const PhotoUpload = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Document Type</InputLabel>
+                <Select
+                  value={documentType}
+                  onChange={(e) => setDocumentType(e.target.value)}
+                  label="Document Type"
+                >
+                  <MenuItem value="id">ID Card</MenuItem>
+                  <MenuItem value="passport">Passport</MenuItem>
+                  <MenuItem value="driversLicense">Driver's License</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
 
