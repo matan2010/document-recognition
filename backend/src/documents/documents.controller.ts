@@ -62,6 +62,12 @@ export class DocumentsController {
           format: 'binary',
           description: 'Document file to upload',
         },
+        documentType: {
+          type: 'string',
+          enum: ['id', 'passport', 'driversLicense'],
+          description: 'Type of document to process',
+          default: 'id'
+        }
       },
     },
   })
@@ -75,6 +81,7 @@ export class DocumentsController {
     @Company() companyId: string,
     @UploadedFile() file: Express.Multer.File,
     @Param('clientId') clientId: string,
+    @Body('documentType') documentType?: string,
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -93,6 +100,7 @@ export class DocumentsController {
           {
             companyId,
             clientId,
+            documentType: documentType || 'id',
             fileName: file.originalname,
             fileSize: file.size,
             mimeType: file.mimetype,
@@ -107,6 +115,7 @@ export class DocumentsController {
         file,
         clientId,
         companyId,
+        documentType || 'id',
       );
 
       this.logger.log(

@@ -3,18 +3,26 @@ export interface OcrMetadata {
     provider: string;
     pages: number;
     mimeType: string;
-    documentType?: string;
-    structuredData: Record<string, string>;
-    rawResponse: any;
+    structuredData?: any;
+    rawResponse?: any;
+    [key: string]: any;
 }
 
 export interface OcrResult {
     text: string;
     confidence: number;
-    metadata: OcrMetadata;
+    metadata: {
+        provider: string;
+        pages: number;
+        mimeType: string;
+        structuredData?: any;
+        rawResponse?: any;
+        [key: string]: any;
+    };
+    [key: string]: any;
 }
 
 export interface IOcrService {
-    processDocument(filePath: string): Promise<OcrResult>;
+    processDocument(filePath: string, documentType?: string): Promise<OcrResult>;
     validateDocument(filePath: string): Promise<boolean>;
 }

@@ -243,6 +243,136 @@ const DocumentDetails = ({
     );
   };
 
+  const renderDriversLicenseData = () => {
+    console.log("Rendering driver's license data. Document type:", metadata.documentType);
+    console.log("Current structured data:", structuredData);
+
+    const fields = [
+      { label: "Last Name", key: "last_name" },
+      { label: "First Name", key: "first_name" },
+      { label: "ID Number", key: "id_number" },
+      { label: "Date of Birth", key: "date_of_birth" },
+      { label: "Home Address", key: "home_address" },
+      { label: "Expiry", key: "expiry" },
+    ];
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Driver's License Details
+        </Typography>
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableBody>
+              {fields.map((field) => (
+                <TableRow key={field.key}>
+                  <TableCell
+                    component="th"
+                    scope="row"
+                    sx={{ width: "30%", backgroundColor: "#f5f5f5" }}
+                  >
+                    {field.label}
+                  </TableCell>
+                  <TableCell sx={{ width: "50%" }}>
+                    {structuredData[field.key] ? (
+                      <Typography>{structuredData[field.key]}</Typography>
+                    ) : (
+                      <Typography color="text.secondary">N/A</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: "20%" }}>
+                    <Tooltip title="Edit Field">
+                      <IconButton size="small" onClick={() => handleEditField(field)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Field">
+                      <IconButton size="small" onClick={() => handleDeleteField(field)} sx={{ ml: 1 }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
+  const renderPassportData = () => {
+    console.log("Rendering passport data. Document type:", metadata.documentType);
+    console.log("Current structured data:", structuredData);
+
+    const fields = [
+      { label: "Last Name", key: "last_name" },
+      { label: "First Name", key: "first_name" },
+      { label: "ID Number", key: "id_number" },
+      { label: "Passport Number", key: "passport_number" },
+      { label: "Nationality", key: "nationality" },
+      { label: "Place of Birth", key: "place_of_birth" },
+      { label: "Expiration Date", key: "expiration_date" },
+    ];
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Passport Details
+        </Typography>
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableBody>
+              {fields.map((field) => (
+                <TableRow key={field.key}>
+                  <TableCell
+                    component="th"
+                    scope="row"
+                    sx={{ width: "30%", backgroundColor: "#f5f5f5" }}
+                  >
+                    {field.label}
+                  </TableCell>
+                  <TableCell sx={{ width: "50%" }}>
+                    {structuredData[field.key] ? (
+                      <Typography>{structuredData[field.key]}</Typography>
+                    ) : (
+                      <Typography color="text.secondary">N/A</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: "20%" }}>
+                    <Tooltip title="Edit Field">
+                      <IconButton size="small" onClick={() => handleEditField(field)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Field">
+                      <IconButton size="small" onClick={() => handleDeleteField(field)} sx={{ ml: 1 }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
+  const renderDocumentData = () => {
+    const docType = metadata.documentType?.toLowerCase() || '';
+    
+    if (docType.includes('driversLicense') || docType === 'driverslicense') {
+      return renderDriversLicenseData();
+    } else if (docType.includes('passport')) {
+      return renderPassportData();
+    } else {
+      // Default to ID card for any other type or when type is not specified
+      return renderIdCardData();
+    }
+  };
+
   const handleEditDialogOpen = () => {
     setEditedData(structuredData);
     setEditDialogOpen(true);
@@ -331,7 +461,7 @@ const DocumentDetails = ({
           </Grid>
         </Grid>
 
-        {renderIdCardData()}
+        {renderDocumentData()}
       </Paper>
 
       {/* Edit Dialog */}
