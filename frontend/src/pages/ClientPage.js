@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -15,8 +15,20 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Breadcrumbs,
+  Link,
+  Tabs,
+  Tab,
+  Divider,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Home as HomeIcon,
+  Description as DescriptionIcon,
+  History as HistoryIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
 import Navbar from '../components/Navbar';
 import BasicInformation from '../components/client/BasicInformation';
 import DocumentsList from '../components/client/DocumentsList';
@@ -33,6 +45,7 @@ const ClientPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -153,21 +166,31 @@ const ClientPage = () => {
     setNotification({ ...notification, open: false });
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </Container>
+      <>
+        <Navbar />
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+            <CircularProgress />
+          </Box>
+        </Container>
+      </>
     );
   }
 
   if (!client) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">Client not found</Alert>
-      </Container>
+      <>
+        <Navbar />
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+          <Alert severity="error">Client not found</Alert>
+        </Container>
+      </>
     );
   }
 
@@ -175,10 +198,25 @@ const ClientPage = () => {
     <>
       <Navbar />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+          <Link
+            component={RouterLink}
+            to="/home"
+            color="inherit"
+            sx={{ display: 'flex', alignItems: 'center' }}
+          >
+            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+            Home
+          </Link>
+          <Typography color="text.primary">{client.name}</Typography>
+        </Breadcrumbs>
+
+        {/* Header Section */}
         <Paper elevation={0} sx={{ p: 3, mb: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h4" component="h1">
-              Client Details
+              {client.name}
             </Typography>
             <Box>
               <Button
@@ -202,13 +240,52 @@ const ClientPage = () => {
           <BasicInformation client={client} />
         </Paper>
 
-        <DocumentsList
-          documents={documents}
-          onViewDocument={handleViewDocument}
-          onDownloadDocument={handleDownloadDocument}
-          onDocumentsChange={handleDocumentsChange}
-        />
+        {/* Tabs Section */}
+        <Paper elevation={0} sx={{ mb: 3 }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab
+              icon={<DescriptionIcon />}
+              label="Documents"
+              iconPosition="start"
+            />
+            <Tab
+              icon={<HistoryIcon />}
+              label="History"
+              iconPosition="start"
+            />
+            <Tab
+              icon={<SettingsIcon />}
+              label="Settings"
+              iconPosition="start"
+            />
+          </Tabs>
+          <Box sx={{ p: 3 }}>
+            {activeTab === 0 && (
+              <DocumentsList
+                documents={documents}
+                onViewDocument={handleViewDocument}
+                onDownloadDocument={handleDownloadDocument}
+                onDocumentsChange={handleDocumentsChange}
+              />
+            )}
+            {activeTab === 1 && (
+              <Typography variant="body1" color="text.secondary">
+                History section coming soon...
+              </Typography>
+            )}
+            {activeTab === 2 && (
+              <Typography variant="body1" color="text.secondary">
+                Settings section coming soon...
+              </Typography>
+            )}
+          </Box>
+        </Paper>
 
+        {/* Edit Dialog */}
         <EditClientForm
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
@@ -217,7 +294,11 @@ const ClientPage = () => {
           saving={saving}
         />
 
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        {/* Delete Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
           <DialogTitle>Delete Client</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -232,13 +313,14 @@ const ClientPage = () => {
           </DialogActions>
         </Dialog>
 
+        {/* Notification Snackbar */}
         <Snackbar
           open={notification.open}
           autoHideDuration={6000}
-          onClose={() => setNotification({ ...notification, open: false })}
+          onClose={handleCloseNotification}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          <Alert onClose={() => setNotification({ ...notification, open: false })} severity={notification.severity}>
+          <Alert onClose={handleCloseNotification} severity={notification.severity}>
             {notification.message}
           </Alert>
         </Snackbar>
