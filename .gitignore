@@ -6,3 +6,7 @@ node_modules
 backend/credentials/
 *.json.key
 google-credentials.json
+
+# Database
+backend/prisma/dr.db
+*.db
