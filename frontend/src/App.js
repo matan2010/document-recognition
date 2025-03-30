@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import DownloadComponent from './components/DownloadComponent';
 import SignUp from './components/SignUp';
 import SignUpCompany from './components/SignUpCompany';
+import GlobalNotification from './components/GlobalNotification';
 
 const theme = createTheme({
   palette: {
@@ -42,86 +43,89 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Routes>
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/signup-company" element={<SignUpCompany />} />
-          <Route path="/download-component" element={<DownloadComponent />} />
-          <Route path="/" element={<Login />} />
-          
-          <Route
-            path="/home"
-            element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/create-client"
-            element={
-              <PrivateRoute>
-                <CreateClient />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/create-employee"
-            element={
-              <PrivateRoute>
-                <CreateEmployee />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/upload-photos"
-            element={
-              <PrivateRoute>
-                <PhotoUpload />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/client/:clientId"
-            element={
-              <PrivateRoute>
-                <ClientPage />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/settings"
-            element={
-              <PrivateRoute>
-                <Settings />
-              </PrivateRoute>
-            }
-          />
-          
-          <Route
-            path="/profile"
-            element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            }
-          />
+    <div className="App">
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <GlobalNotification />
+        <Router>
+          <Routes>
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/signup-company" element={<SignUpCompany />} />
+            <Route path="/download-component" element={<DownloadComponent />} />
+            <Route path="/" element={<Login />} />
+            
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/create-client"
+              element={
+                <PrivateRoute>
+                  <CreateClient />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/create-employee"
+              element={
+                <PrivateRoute>
+                  <CreateEmployee />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/upload-photos"
+              element={
+                <PrivateRoute>
+                  <PhotoUpload />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/client/:clientId"
+              element={
+                <PrivateRoute>
+                  <ClientPage />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <Settings />
+                </PrivateRoute>
+              }
+            />
+            
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Catch all route - redirect to home if authenticated, login if not */}
-          <Route
-            path="*"
-            element={<Navigate to="/" replace />}
-          />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+            {/* Catch all route - redirect to home if authenticated, login if not */}
+            <Route
+              path="*"
+              element={<Navigate to="/" replace />}
+            />
+          </Routes>
+        </Router>
+      </ThemeProvider>
+    </div>
   );
 }
 
