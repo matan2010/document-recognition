@@ -29,10 +29,16 @@ const PhotoUpload = () => {
   const [title, setTitle] = useState("");
   const [documentType, setDocumentType] = useState("id");
   const [loading, setLoading] = useState(false);
+  const [fileError, setFileError] = useState("");
 
   useEffect(() => {
     loadClients();
   }, []);
+
+  useEffect(() => {
+    setFiles([]);
+    setFileError("");
+  }, [documentType]);
 
   const loadClients = async () => {
     setLoading(true);
@@ -47,7 +53,31 @@ const PhotoUpload = () => {
     }
   };
 
-  const onDrop = (acceptedFiles) => {
+  const onDrop = (acceptedFiles, rejectedFiles) => {
+    // Check if document type is table and validate file types
+    if (documentType === "table") {
+      const allowedExtensions = ['.pdf', '.html', '.docx', '.pptx', '.xlsx', '.xlsm'];
+      const validFiles = acceptedFiles.filter(file => {
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
+      });
+      
+      if (validFiles.length !== acceptedFiles.length) {
+        setFileError("For table documents, only PDF, HTML, DOCX, PPTX, XLSX, and XLSM files are allowed.");
+        // Only add valid files
+        setFiles((prevFiles) => [
+          ...prevFiles,
+          ...validFiles.map((file) => ({
+            file,
+            preview: URL.createObjectURL(file),
+          })),
+        ]);
+        return;
+      }
+    }
+    
+    // If not a table document or all files are valid
+    setFileError("");
     setFiles((prevFiles) => [
       ...prevFiles,
       ...acceptedFiles.map((file) => ({
@@ -59,10 +89,19 @@ const PhotoUpload = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
-      "application/pdf": [".pdf"],
-    },
+    accept: documentType === "table" 
+      ? {
+          "application/pdf": [".pdf"],
+          "text/html": [".html"],
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+          "application/vnd.ms-excel.sheet.macroEnabled.12": [".xlsm"]
+        }
+      : {
+          "image/*": [".jpeg", ".jpg", ".png"],
+          "application/pdf": [".pdf"],
+        },
     maxSize: 10000000, // 10MB
   });
 
@@ -76,8 +115,17 @@ const PhotoUpload = () => {
       NotificationService.notify("Please enter a document title", "error");
       return;
     }
+    
+    if (files.length === 0) {
+      NotificationService.notify("Please upload at least one file", "error");
+      return;
+    }
+    
+    if (fileError) {
+      NotificationService.notify(fileError, "error");
+      return;
+    }
 
-    // Start uploading each file in the background
     files.forEach((fileObj) => {
       const metadata = {
         documentType: fileObj.file.type.split("/")[1].toUpperCase(),
@@ -94,10 +142,8 @@ const PhotoUpload = () => {
         metadata,
       };
 
-      // Notify that upload has started
       NotificationService.notify(`Started uploading "${title}"`, "info");
 
-      // Start background upload
       DocumentService.uploadDocumentInBackground(
         documentData,
         () => {
@@ -112,7 +158,6 @@ const PhotoUpload = () => {
       );
     });
 
-    // Clear the form and navigate away
     setFiles([]);
     setTitle("");
     NotificationService.notify("Upload process started. You can continue using the site.", "info");
@@ -124,7 +169,6 @@ const PhotoUpload = () => {
     URL.revokeObjectURL(files.find((f) => f.file.name === fileName)?.preview);
   };
 
-  // Cleanup previews when component unmounts
   useEffect(() => {
     return () => {
       files.forEach((file) => {
@@ -185,7 +229,8 @@ const PhotoUpload = () => {
             >
               <MenuItem value="id">ID</MenuItem>
               <MenuItem value="passport">Passport</MenuItem>
-              <MenuItem value="other">Other</MenuItem>
+              <MenuItem value="driversLicense">Drivers License</MenuItem>
+              <MenuItem value="table">Table</MenuItem>
             </Select>
           </FormControl>
 
@@ -194,13 +239,26 @@ const PhotoUpload = () => {
             className={`dropzone ${isDragActive ? "active" : ""}`}
           >
             <input {...getInputProps()} />
-            <CloudUpload />
-            <Typography>
-              {isDragActive
-                ? "Drop the files here..."
-                : "Drag 'n' drop files here, or click to select files"}
-            </Typography>
+            {isDragActive ? (
+              <p>Drop the files here...</p>
+            ) : (
+              <div>
+                <CloudUpload fontSize="large" />
+                <p>Drag and drop files here, or click to select files</p>
+                {documentType === "table" && (
+                  <p className="file-type-info">
+                    For table documents, only PDF, HTML, DOCX, PPTX, XLSX, and XLSM files are allowed.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+          
+          {fileError && (
+            <div className="error-message">
+              {fileError}
+            </div>
+          )}
 
           {files.length > 0 && (
             <Grid container spacing={2} className="file-list">
