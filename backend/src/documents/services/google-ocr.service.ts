@@ -4,6 +4,7 @@ import { IOcrService, OcrResult } from '../interfaces/ocr.interface';
 import { GoogleCloudConfig } from '../../config/google-cloud.config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { OpenRouterService } from './openrouter.service';
 
 // Import processors configuration
 import * as processors from './processors.json';
@@ -15,7 +16,10 @@ export class GoogleOcrService implements IOcrService {
   // private readonly location: string;
   // private readonly processorId: string;
 
-  constructor(private googleConfig: GoogleCloudConfig) {
+  constructor(
+    private googleConfig: GoogleCloudConfig,
+    private openRouterService: OpenRouterService
+  ) {
     try {
       // this.location = this.googleConfig.getDocumentAILocation();
       // this.processorId = this.googleConfig.getDocumentAIProcessorId();
@@ -132,16 +136,36 @@ export class GoogleOcrService implements IOcrService {
         };
 
         const structuredData = extractStructuredData(document);
+        
+        // For lease agreements, use OpenRouter API to extract additional structured data
+        let openRouterData = {};
+        if (documentType === 'leaseAgreement') {
+          try {
+            this.logger.log('Processing lease agreement with OpenRouter API');
+            const openRouterResponse = await this.openRouterService.processLeaseAgreement(document.text || '');
+            openRouterData = openRouterResponse.data;
+            this.logger.log('Successfully processed lease agreement with OpenRouter API');
+          } catch (error) {
+            this.logger.error('OpenRouter processing failed:', error);
+            // Continue with the regular response even if OpenRouter fails
+          }
+        }
+
         const response = {
           text: document.text || '',
           confidence: confidence,
           metadata: {
             processedAt: new Date().toISOString(),
-            provider: 'google-document-ai',
+            provider: documentType === 'leaseAgreement' 
+              ? 'Google Document AI and OpenRouter'
+              : 'Google Document AI',
             pages: document.pages?.length || 0,
             mimeType: document.mimeType,
-            structuredData,
+            structuredData: documentType === 'leaseAgreement' 
+              ? { ...structuredData, ...openRouterData }
+              : structuredData,
             rawResponse: document,
+            ...(documentType === 'leaseAgreement' && { openRouterData }),
           },
         };
 

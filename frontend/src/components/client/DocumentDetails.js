@@ -91,6 +91,12 @@ const DocumentDetails = ({
     try {
       console.log("Extracting structured data from metadata:", metadata);
 
+      // Check if this is a lease agreement with OpenRouter data
+      if (metadata.provider?.includes('OpenRouter') && metadata.openRouterData?.data) {
+        console.log("Using OpenRouter data for lease agreement:", metadata.openRouterData.data);
+        return metadata.openRouterData.data;
+      }
+
       // First try to get the pre-extracted structured data
       if (metadata.structuredData && Object.keys(metadata.structuredData).length > 0) {
         console.log("Using pre-extracted structured data:", metadata.structuredData);
@@ -144,12 +150,31 @@ const DocumentDetails = ({
       delete updatedData[field.key];
 
       try {
-        await onUpdateDocument(document.id, {
-          metadata: {
-            ...metadata,
-            structuredData: updatedData,
-          },
-        });
+        // Check if we're dealing with a lease agreement (OpenRouter data)
+        if (metadata.provider?.includes('OpenRouter') && metadata.openRouterData) {
+          await onUpdateDocument(document.id, {
+            metadata: {
+              ...metadata,
+              openRouterData: {
+                ...metadata.openRouterData,
+                data: updatedData
+              },
+              // Also update the combined structuredData
+              structuredData: {
+                ...metadata.structuredData,
+                [field.key]: undefined
+              }
+            },
+          });
+        } else {
+          // Regular document update
+          await onUpdateDocument(document.id, {
+            metadata: {
+              ...metadata,
+              structuredData: updatedData,
+            },
+          });
+        }
       } catch (error) {
         console.error("Error deleting field:", error);
         alert("Failed to delete field. Please try again.");
@@ -164,12 +189,31 @@ const DocumentDetails = ({
         [selectedField.key]: editFieldValue,
       };
 
-      await onUpdateDocument(document.id, {
-        metadata: {
-          ...metadata,
-          structuredData: updatedData,
-        },
-      });
+      // Check if we're dealing with a lease agreement (OpenRouter data)
+      if (metadata.provider?.includes('OpenRouter') && metadata.openRouterData) {
+        await onUpdateDocument(document.id, {
+          metadata: {
+            ...metadata,
+            openRouterData: {
+              ...metadata.openRouterData,
+              data: updatedData
+            },
+            // Also update the combined structuredData
+            structuredData: {
+              ...metadata.structuredData,
+              [selectedField.key]: editFieldValue
+            }
+          },
+        });
+      } else {
+        // Regular document update
+        await onUpdateDocument(document.id, {
+          metadata: {
+            ...metadata,
+            structuredData: updatedData,
+          },
+        });
+      }
 
       setEditFieldDialogOpen(false);
       setSelectedField(null);
@@ -325,6 +369,61 @@ const DocumentDetails = ({
       <Box sx={{ mt: 2 }}>
         <Typography variant="h6" gutterBottom>
           Passport Details
+        </Typography>
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableBody>
+              {fields.map((field) => (
+                <TableRow key={field.key}>
+                  <TableCell
+                    component="th"
+                    scope="row"
+                    sx={{ width: "30%", backgroundColor: "#f5f5f5" }}
+                  >
+                    {field.label}
+                  </TableCell>
+                  <TableCell sx={{ width: "50%" }}>
+                    {structuredData[field.key] ? (
+                      <Typography>{structuredData[field.key]}</Typography>
+                    ) : (
+                      <Typography color="text.secondary">N/A</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: "20%" }}>
+                    <Tooltip title="Edit Field">
+                      <IconButton size="small" onClick={() => handleEditField(field)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Field">
+                      <IconButton size="small" onClick={() => handleDeleteField(field)} sx={{ ml: 1 }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
+  const renderLeaseAgreementData = () => {
+    console.log("Rendering lease agreement data. Document type:", metadata.documentType);
+    console.log("Current structured data:", structuredData);
+
+    const fields = [
+      { label: "Tenant Name", key: "tenantName" },
+      { label: "Landlord Name", key: "landlordName" },
+      { label: "Monthly Rent", key: "monthlyRent" }
+    ];
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Lease Agreement Details
         </Typography>
         <TableContainer component={Paper} variant="outlined">
           <Table>
@@ -606,7 +705,9 @@ const DocumentDetails = ({
 
   const renderDocumentData = () => {
     const docType = metadata.documentType?.toLowerCase() || '';
-    if (docType.includes('driversLicense') || docType === 'driverslicense') {
+    if (docType.includes('leaseAgreement') || docType === 'leaseagreement') {
+      return renderLeaseAgreementData();
+    } else if (docType.includes('driversLicense') || docType === 'driverslicense') {
       return renderDriversLicenseData();
     } else if (docType.includes('passport')) {
       return renderPassportData();
@@ -757,6 +858,7 @@ const DocumentDetails = ({
                 if (docType.includes('driverslicense') || docType === 'driverslicense') return 'Driver\'s License';
                 if (docType.includes('passport')) return 'Passport';
                 if (docType.includes('table') || docType === 'table') return 'Table Document';
+                if (docType.includes('leaseAgreement') || docType === 'leaseagreement') return 'Lease Agreement';
                 if (docType) return metadata.documentType; // Return original if not matching any known type
                 return 'Unknown';
               })()}

@@ -231,6 +231,7 @@ const PhotoUpload = () => {
               <MenuItem value="passport">Passport</MenuItem>
               <MenuItem value="driversLicense">Drivers License</MenuItem>
               <MenuItem value="table">Table</MenuItem>
+              <MenuItem value="leaseAgreement">Lease Agreement</MenuItem>
             </Select>
           </FormControl>
 

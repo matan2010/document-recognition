@@ -2,5 +2,6 @@
   "id": {"location":"us","id":"1d6981e46b0d570b"},
   "passport": {"location":"us","id":"9965fbd37d003fbd"},
   "driversLicense": {"location":"us","id":"de06937192daed01"},
-  "table": {"location":"us","id":"3857cdcd90891084"}
+  "table": {"location":"us","id":"3857cdcd90891084"},
+  "leaseAgreement": {"location":"us","id":"f7feb5758aa49804"}
 }

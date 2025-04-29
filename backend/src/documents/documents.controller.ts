@@ -380,14 +380,14 @@ export class DocumentsController {
     try {
       const companyId = req.user.companyId;
 
-      this.logger.log(
-        `Updating document: ${JSON.stringify({
-          id,
-          companyId,
-          updates: updateDocumentDto,
-          timestamp: new Date().toISOString(),
-        }, null, 2)}`,
-      );
+      // this.logger.log(
+      //   `Updating document: ${JSON.stringify({
+      //     id,
+      //     companyId,
+      //     updates: updateDocumentDto,
+      //     timestamp: new Date().toISOString(),
+      //   }, null, 2)}`,
+      // );
 
       const result = await this.documentsService.update(
         id,
@@ -395,16 +395,16 @@ export class DocumentsController {
         companyId,
       );
 
-      this.logger.log(
-        `Document updated successfully: ${JSON.stringify({
-          id: result.id,
-          title: result.title,
-          clientId: result.clientId,
-          status: result.status,
-          companyId: result.companyId,
-          timestamp: new Date().toISOString(),
-        }, null, 2)}`,
-      );
+      // this.logger.log(
+      //   `Document updated successfully: ${JSON.stringify({
+      //     id: result.id,
+      //     title: result.title,
+      //     clientId: result.clientId,
+      //     status: result.status,
+      //     companyId: result.companyId,
+      //     timestamp: new Date().toISOString(),
+      //   }, null, 2)}`,
+      // );
 
       return result;
     } catch (error) {
