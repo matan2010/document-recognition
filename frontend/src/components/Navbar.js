@@ -29,6 +29,7 @@ import {
   Upload,
   Group,
   Add,
+  Info,
 } from '@mui/icons-material';
 
 const Navbar = () => {
@@ -45,6 +46,7 @@ const Navbar = () => {
     { title: 'Upload Photos', path: '/upload-photos', icon: <Upload /> },
     { title: 'Create Client', path: '/create-client', icon: <Add /> },
     { title: 'Create Employee', path: '/create-employee', icon: <Group /> },
+    { title: 'API Spec', path: '/api-spec', icon: <Info /> },
   ];
 
   const settings = [
