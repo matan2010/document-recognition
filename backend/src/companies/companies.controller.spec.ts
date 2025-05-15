@@ -1,17 +1,41 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
+import { UpdateCompanyDto } from './dto/update-company.dto';
+import { UnauthorizedException } from '@nestjs/common';
+import { Role } from '../common/enums/role.enum';
 
+// Define the delete response type
 describe('CompaniesController', () => {
   let controller: CompaniesController;
-  let service: CompaniesService;
 
   const mockCompaniesService = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    findCurrent: jest.fn(),
     update: jest.fn(),
+    updateCurrent: jest.fn(),
     remove: jest.fn(),
+    removeCurrent: jest.fn(),
+  };
+
+  const mockAdminRequest = {
+    user: {
+      id: 'admin-user-id',
+      email: 'admin@example.com',
+      role: Role.ADMIN,
+      companyId: 'admin-company-id',
+    },
+  };
+
+  const mockUserRequest = {
+    user: {
+      id: 'normal-user-id',
+      email: 'user@example.com',
+      role: Role.NORMAL,
+      companyId: 'user-company-id',
+    },
   };
 
   beforeEach(async () => {
@@ -26,176 +50,228 @@ describe('CompaniesController', () => {
     }).compile();
 
     controller = module.get<CompaniesController>(CompaniesController);
-    service = module.get<CompaniesService>(CompaniesService);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    jest.clearAllMocks();
   });
 
   describe('findAll', () => {
-    it('should return an array of companies', async () => {
+    it('should return all companies for admin users', async () => {
       const expectedResult = [
-        { 
-          id: 'company-1',
+        {
+          id: 'company1',
           name: 'Company 1',
-          users: [],
-          clients: [],
-          preferences: [],
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        { 
-          id: 'company-2',
+        {
+          id: 'company2',
           name: 'Company 2',
-          users: [],
-          clients: [],
-          preferences: [],
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
       ];
 
-      jest.spyOn(service, 'findAll').mockResolvedValue(expectedResult);
+      mockCompaniesService.findAll.mockResolvedValue(expectedResult);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockAdminRequest);
 
-      expect(result).toBe(expectedResult);
-      expect(service.findAll).toHaveBeenCalled();
+      expect(result).toEqual(expectedResult);
+      expect(mockCompaniesService.findAll).toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException for non-admin users', async () => {
+      await expect(controller.findAll(mockUserRequest)).rejects.toThrow(
+        new UnauthorizedException('Only admin users can list all companies'),
+      );
+      expect(mockCompaniesService.findAll).not.toHaveBeenCalled();
     });
   });
 
   describe('findOne', () => {
-    it('should return a single company', async () => {
-      const companyId = 'company-id';
-      const expectedResult = { 
+    it('should return a company for admin users', async () => {
+      const companyId = 'some-other-company';
+      const expectedResult = {
         id: companyId,
         name: 'Test Company',
-        users: [],
-        clients: [],
-        preferences: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
+      mockCompaniesService.findOne.mockResolvedValue(expectedResult);
 
-      const result = await controller.findOne(companyId);
+      const result = await controller.findOne(mockAdminRequest, companyId);
 
-      expect(result).toBe(expectedResult);
-      expect(service.findOne).toHaveBeenCalledWith(companyId);
+      expect(result).toEqual(expectedResult);
+      expect(mockCompaniesService.findOne).toHaveBeenCalledWith(companyId);
+    });
+
+    it('should throw UnauthorizedException for non-admin users', async () => {
+      await expect(
+        controller.findOne(mockUserRequest, mockUserRequest.user.companyId),
+      ).rejects.toThrow(
+        new UnauthorizedException(
+          'Only admin users can access other companies',
+        ),
+      );
+      expect(mockCompaniesService.findOne).not.toHaveBeenCalled();
     });
   });
 
   describe('findCurrent', () => {
-    it('should return the current company', async () => {
-      const companyId = 'company-id';
-      const expectedResult = { 
-        id: companyId,
+    it('should allow users to access their own company', async () => {
+      const expectedResult = {
+        id: mockUserRequest.user.companyId,
         name: 'Test Company',
-        users: [],
-        clients: [],
-        preferences: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
+      mockCompaniesService.findOne.mockResolvedValue(expectedResult);
 
-      const result = await controller.findCurrent(companyId);
+      const result = await controller.findCurrent(
+        mockUserRequest,
+        mockUserRequest.user.companyId,
+      );
 
-      expect(result).toBe(expectedResult);
-      expect(service.findOne).toHaveBeenCalledWith(companyId);
+      expect(result).toEqual(expectedResult);
+      expect(mockCompaniesService.findOne).toHaveBeenCalledWith(
+        mockUserRequest.user.companyId,
+      );
     });
   });
 
   describe('update', () => {
-    it('should update a company', async () => {
-      const companyId = 'company-id';
-      const updateCompanyDto = { name: 'Updated Company' };
-      const expectedResult = { 
+    const companyId = 'company-id';
+    const updateCompanyDto: UpdateCompanyDto = {
+      name: 'Updated Company',
+    };
+
+    it('should update a company for admin users', async () => {
+      const expectedResult = {
         id: companyId,
-        name: 'Updated Company',
-        users: [],
-        clients: [],
-        preferences: [],
+        name: updateCompanyDto.name,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'update').mockResolvedValue(expectedResult);
+      mockCompaniesService.update.mockResolvedValue(expectedResult);
 
-      const result = await controller.update(companyId, updateCompanyDto);
+      const result = await controller.update(
+        mockAdminRequest,
+        companyId,
+        updateCompanyDto,
+      );
 
-      expect(result).toBe(expectedResult);
-      expect(service.update).toHaveBeenCalledWith(companyId, updateCompanyDto);
+      expect(result).toEqual(expectedResult);
+      expect(mockCompaniesService.update).toHaveBeenCalledWith(
+        companyId,
+        updateCompanyDto,
+      );
+    });
+
+    it('should throw UnauthorizedException for non-admin users', async () => {
+      await expect(
+        controller.update(mockUserRequest, companyId, updateCompanyDto),
+      ).rejects.toThrow(
+        new UnauthorizedException('Only admin users can update companies'),
+      );
+      expect(mockCompaniesService.update).not.toHaveBeenCalled();
     });
   });
 
   describe('updateCurrent', () => {
-    it('should update the current company', async () => {
-      const companyId = 'company-id';
-      const updateCompanyDto = { name: 'Updated Company' };
-      const expectedResult = { 
-        id: companyId,
+    it('should update current company for any user', async () => {
+      const mockResponse = {
+        id: mockUserRequest.user.companyId,
         name: 'Updated Company',
-        users: [],
-        clients: [],
-        preferences: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'update').mockResolvedValue(expectedResult);
+      const updateCompanyDto: UpdateCompanyDto = {
+        name: 'Updated Company',
+      };
 
-      const result = await controller.updateCurrent(companyId, updateCompanyDto);
+      mockCompaniesService.update.mockResolvedValue(mockResponse);
 
-      expect(result).toBe(expectedResult);
-      expect(service.update).toHaveBeenCalledWith(companyId, updateCompanyDto);
+      const result = await controller.updateCurrent(
+        mockUserRequest,
+        mockUserRequest.user.companyId,
+        updateCompanyDto,
+      );
+
+      expect(result).toEqual({
+        ...mockResponse,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
+
+      expect(mockCompaniesService.update).toHaveBeenCalledWith(
+        mockUserRequest.user.companyId,
+        updateCompanyDto,
+      );
     });
   });
 
   describe('remove', () => {
-    it('should remove a company', async () => {
-      const companyId = 'company-id';
-      const expectedResult = { 
+    const companyId = 'company-id';
+
+    it('should delete a company for admin users', async () => {
+      const deletedCompany = {
         id: companyId,
         name: 'Test Company',
-        users: [],
-        clients: [],
-        preferences: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      mockCompaniesService.remove.mockResolvedValue({ deletedCompany });
 
-      const result = await controller.remove(companyId);
+      const result = await controller.remove(mockAdminRequest, companyId);
 
-      expect(result).toBe(expectedResult);
-      expect(service.remove).toHaveBeenCalledWith(companyId);
+      expect(result).toEqual({
+        success: true,
+        message: 'Company deleted successfully',
+        deletedCompany: {
+          ...deletedCompany,
+          deletedAt: expect.any(String),
+        },
+      });
+      expect(mockCompaniesService.remove).toHaveBeenCalledWith(companyId);
+    });
+
+    it('should throw UnauthorizedException for non-admin users', async () => {
+      await expect(
+        controller.remove(mockUserRequest, companyId),
+      ).rejects.toThrow(
+        new UnauthorizedException('Only admin users can delete companies'),
+      );
+      expect(mockCompaniesService.remove).not.toHaveBeenCalled();
     });
   });
 
   describe('removeCurrent', () => {
-    it('should remove the current company', async () => {
-      const companyId = 'company-id';
-      const expectedResult = { 
-        id: companyId,
+    const companyId = 'user-company-id';
+
+    it('should delete current company for any user', async () => {
+      const deletedCompany = {
+        id: mockUserRequest.user.companyId,
         name: 'Test Company',
-        users: [],
-        clients: [],
-        preferences: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      mockCompaniesService.remove.mockResolvedValue({ deletedCompany });
 
-      const result = await controller.removeCurrent(companyId);
+      const result = await controller.removeCurrent(mockUserRequest, companyId);
 
-      expect(result).toBe(expectedResult);
-      expect(service.remove).toHaveBeenCalledWith(companyId);
+      expect(result).toEqual({
+        success: true,
+        message: 'Company deleted successfully',
+        deletedCompany: {
+          ...deletedCompany,
+          deletedAt: expect.any(String),
+        },
+      });
+      expect(mockCompaniesService.remove).toHaveBeenCalledWith(companyId);
     });
   });
 });
