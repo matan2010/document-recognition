@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { BootstrapDto } from './dto/bootstrap.dto';
-import { UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Role } from '../common/enums/role.enum';
 
 describe('AuthController', () => {
@@ -62,7 +65,9 @@ describe('AuthController', () => {
     });
 
     it('should handle bootstrap errors', async () => {
-      mockAuthService.bootstrap.mockRejectedValue(new Error('Failed to create company'));
+      mockAuthService.bootstrap.mockRejectedValue(
+        new Error('Failed to create company'),
+      );
 
       await expect(controller.bootstrap(bootstrapDto)).rejects.toThrow(
         new InternalServerErrorException('Bootstrap failed'),
@@ -158,7 +163,9 @@ describe('AuthController', () => {
         },
       };
 
-      mockAuthService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
+      mockAuthService.login.mockRejectedValue(
+        new UnauthorizedException('Invalid credentials'),
+      );
 
       await expect(controller.login(mockRequest, loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -191,7 +198,9 @@ describe('AuthController', () => {
     });
 
     it('should handle refresh token errors', async () => {
-      mockAuthService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid refresh token'));
+      mockAuthService.refreshToken.mockRejectedValue(
+        new UnauthorizedException('Invalid refresh token'),
+      );
 
       await expect(controller.refreshToken(refreshToken)).rejects.toThrow(
         UnauthorizedException,

@@ -144,7 +144,9 @@ describe('AuthService', () => {
     };
 
     it('should refresh tokens successfully', async () => {
-      mockPrismaService.refreshToken.findUnique.mockResolvedValue(mockSavedToken);
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue(
+        mockSavedToken,
+      );
       mockPrismaService.$transaction.mockResolvedValue([
         { id: 'old-token', revokedAt: new Date() },
         { id: 'new-token', token: 'mock-uuid' },
@@ -279,7 +281,9 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if company creation fails', async () => {
-      mockPrismaService.company.create.mockRejectedValue(new Error('Database error'));
+      mockPrismaService.company.create.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       await expect(service.bootstrap(bootstrapDto)).rejects.toThrow(
         UnauthorizedException,
