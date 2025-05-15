@@ -45,15 +45,24 @@ describe('AuthController', () => {
 
   describe('bootstrap', () => {
     it('should create a company and return token', async () => {
-      const dto = { name: 'Test Company' };
+      const dto = { 
+        companyName: 'Test Company',
+        adminEmail: 'admin@test.com',
+        adminPassword: 'password123'
+      };
       const result = {
         company: {
-          id: 'test-id',
+          id: 'company-id',
           name: 'Test Company',
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
-        access_token: 'test-token',
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        user: {
+          id: 'user-id',
+          email: 'admin@test.com',
+          role: 'ADMIN',
+          companyId: 'company-id'
+        }
       };
 
       jest.spyOn(service, 'bootstrap').mockResolvedValue(result);
@@ -63,21 +72,33 @@ describe('AuthController', () => {
     });
 
     it('should handle errors', async () => {
-      const dto = { name: 'Test Company' };
+      const dto = { 
+        companyName: 'Test Company',
+        adminEmail: 'admin@test.com',
+        adminPassword: 'password123'
+      };
       jest.spyOn(service, 'bootstrap').mockRejectedValue(new Error('Test error'));
 
-      await expect(controller.bootstrap(dto)).rejects.toThrow('Failed to create company');
+      await expect(controller.bootstrap(dto)).rejects.toThrow('Bootstrap failed');
     });
   });
 
   describe('verifyToken', () => {
     it('should return company id when token is valid', async () => {
       const companyId = 'test-id';
-      const result = await controller.verifyToken(companyId);
+      const mockReq = {
+        user: {
+          id: 'user-123',
+          companyId: companyId
+        }
+      };
+      const result = await controller.verifyToken(mockReq);
       
       expect(result).toEqual({
         companyId,
-        verified: true,
+        userId: 'user-123',
+        email: undefined,
+        role: undefined
       });
     });
   });

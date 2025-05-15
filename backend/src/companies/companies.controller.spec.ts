@@ -58,9 +58,10 @@ describe('CompaniesController', () => {
 
       jest.spyOn(service, 'findAll').mockResolvedValue(expectedResult);
 
-      const result = await controller.findAll();
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.findAll(mockReq);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual(expectedResult);
       expect(service.findAll).toHaveBeenCalled();
     });
   });
@@ -68,7 +69,7 @@ describe('CompaniesController', () => {
   describe('findOne', () => {
     it('should return a single company', async () => {
       const companyId = 'company-id';
-      const expectedResult = { 
+      const expectedResult = {
         id: companyId,
         name: 'Test Company',
         users: [],
@@ -80,9 +81,10 @@ describe('CompaniesController', () => {
 
       jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
 
-      const result = await controller.findOne(companyId);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.findOne(mockReq, companyId);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual(expectedResult);
       expect(service.findOne).toHaveBeenCalledWith(companyId);
     });
   });
@@ -90,7 +92,7 @@ describe('CompaniesController', () => {
   describe('findCurrent', () => {
     it('should return the current company', async () => {
       const companyId = 'company-id';
-      const expectedResult = { 
+      const expectedResult = {
         id: companyId,
         name: 'Test Company',
         users: [],
@@ -102,9 +104,10 @@ describe('CompaniesController', () => {
 
       jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
 
-      const result = await controller.findCurrent(companyId);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.findCurrent(mockReq, companyId);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual(expectedResult);
       expect(service.findOne).toHaveBeenCalledWith(companyId);
     });
   });
@@ -125,9 +128,10 @@ describe('CompaniesController', () => {
 
       jest.spyOn(service, 'update').mockResolvedValue(expectedResult);
 
-      const result = await controller.update(companyId, updateCompanyDto);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.update(mockReq, companyId, updateCompanyDto);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual(expectedResult);
       expect(service.update).toHaveBeenCalledWith(companyId, updateCompanyDto);
     });
   });
@@ -148,9 +152,10 @@ describe('CompaniesController', () => {
 
       jest.spyOn(service, 'update').mockResolvedValue(expectedResult);
 
-      const result = await controller.updateCurrent(companyId, updateCompanyDto);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.updateCurrent(mockReq, 'company-id', updateCompanyDto);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual(expectedResult);
       expect(service.update).toHaveBeenCalledWith(companyId, updateCompanyDto);
     });
   });
@@ -158,7 +163,7 @@ describe('CompaniesController', () => {
   describe('remove', () => {
     it('should remove a company', async () => {
       const companyId = 'company-id';
-      const expectedResult = { 
+      const expectedResult = {
         id: companyId,
         name: 'Test Company',
         users: [],
@@ -168,11 +173,29 @@ describe('CompaniesController', () => {
         updatedAt: new Date()
       };
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      const deleteResult = {
+        deletedCompany: {
+          id: companyId,
+          name: 'Test Company',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: new Date().toISOString()
+        },
+        success: true,
+        message: 'Company deleted successfully'
+      };
+      jest.spyOn(service, 'remove').mockResolvedValue(deleteResult);
 
-      const result = await controller.remove(companyId);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.remove(mockReq, companyId);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual({
+        ...deleteResult,
+        deletedCompany: {
+          ...deleteResult.deletedCompany,
+          deletedAt: expect.any(String)
+        }
+      });
       expect(service.remove).toHaveBeenCalledWith(companyId);
     });
   });
@@ -180,7 +203,7 @@ describe('CompaniesController', () => {
   describe('removeCurrent', () => {
     it('should remove the current company', async () => {
       const companyId = 'company-id';
-      const expectedResult = { 
+      const expectedResult = {
         id: companyId,
         name: 'Test Company',
         users: [],
@@ -190,11 +213,29 @@ describe('CompaniesController', () => {
         updatedAt: new Date()
       };
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      const deleteResult = {
+        deletedCompany: {
+          id: companyId,
+          name: 'Test Company',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: new Date().toISOString()
+        },
+        success: true,
+        message: 'Company deleted successfully'
+      };
+      jest.spyOn(service, 'remove').mockResolvedValue(deleteResult);
 
-      const result = await controller.removeCurrent(companyId);
+      const mockReq = { user: { companyId: 'company-id', role: 'admin' } };
+      const result = await controller.removeCurrent(mockReq, companyId);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toEqual({
+        ...deleteResult,
+        deletedCompany: {
+          ...deleteResult.deletedCompany,
+          deletedAt: expect.any(String)
+        }
+      });
       expect(service.remove).toHaveBeenCalledWith(companyId);
     });
   });

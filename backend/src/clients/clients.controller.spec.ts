@@ -39,7 +39,8 @@ describe('ClientsController', () => {
       const createClientDto = { 
         name: 'Test Client', 
         email: 'test@example.com',
-        companyId: companyId
+        companyId: companyId,
+        clientReferenceId: 'REF123'
       };
       const expectedResult = { 
         id: 'client-id', 
@@ -53,7 +54,7 @@ describe('ClientsController', () => {
       const result = await controller.create(companyId, createClientDto);
 
       expect(result).toBe(expectedResult);
-      expect(service.create).toHaveBeenCalledWith(createClientDto);
+      expect(service.create).toHaveBeenCalledWith(createClientDto, companyId);
     });
   });
 
@@ -66,6 +67,7 @@ describe('ClientsController', () => {
           name: 'Client 1',
           email: 'client1@example.com',
           companyId: companyId,
+          clientReferenceId: 'REF1',
           createdAt: new Date(),
           updatedAt: new Date(),
           documents: []
@@ -75,6 +77,7 @@ describe('ClientsController', () => {
           name: 'Client 2',
           email: 'client2@example.com',
           companyId: companyId,
+          clientReferenceId: 'REF2',
           createdAt: new Date(),
           updatedAt: new Date(),
           documents: []
@@ -94,14 +97,15 @@ describe('ClientsController', () => {
     it('should return a single client', async () => {
       const companyId = 'company-id';
       const clientId = 'client-id';
-      const expectedResult = { 
-        id: clientId, 
+      const expectedResult = {
+        id: '123',
         name: 'Test Client',
         email: 'test@example.com',
-        companyId: companyId,
+        companyId: '456',
+        clientReferenceId: 'REF123',
         createdAt: new Date(),
         updatedAt: new Date(),
-        documents: []
+        documents: [],
       };
 
       jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
@@ -123,6 +127,7 @@ describe('ClientsController', () => {
         name: 'Updated Client',
         email: 'test@example.com',
         companyId: companyId,
+        clientReferenceId: 'REF123',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -141,19 +146,29 @@ describe('ClientsController', () => {
       const companyId = 'company-id';
       const clientId = 'client-id';
       const expectedResult = { 
-        id: clientId,
-        name: 'Test Client',
-        email: 'test@example.com',
-        companyId: companyId,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        success: true,
+        message: 'Client deleted successfully',
+        deletedClient: {
+          id: clientId,
+          name: 'Test Client',
+          email: 'test@example.com',
+          companyId: companyId,
+          clientReferenceId: 'REF123',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: new Date().toISOString()
+        }
       };
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult.deletedClient);
 
       const result = await controller.remove(companyId, clientId);
 
-      expect(result).toBe(expectedResult);
+      expect(result.deletedClient.id).toEqual(expectedResult.deletedClient.id);
+      expect(result.deletedClient.name).toEqual(expectedResult.deletedClient.name);
+      expect(result.deletedClient.email).toEqual(expectedResult.deletedClient.email);
+      expect(result.deletedClient.clientReferenceId).toEqual(expectedResult.deletedClient.clientReferenceId);
+      expect(result.deletedClient.companyId).toEqual(expectedResult.deletedClient.companyId);
       expect(service.remove).toHaveBeenCalledWith(clientId, companyId);
     });
   });

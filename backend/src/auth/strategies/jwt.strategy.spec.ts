@@ -1,4 +1,6 @@
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../prisma/prisma.service';
 import { JwtStrategy } from './jwt.strategy';
 
 describe('JwtStrategy', () => {
@@ -22,9 +24,30 @@ describe('JwtStrategy', () => {
     expect(strategy).toBeDefined();
   });
 
-  it('should throw error if JWT_SECRET is not set', () => {
+  it('should throw error if JWT_SECRET is not set', async () => {
     delete process.env.JWT_SECRET;
-    expect(() => new JwtStrategy()).toThrow('JWT_SECRET environment variable is not set');
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        JwtStrategy,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue(null)
+          }
+        },
+        {
+          provide: PrismaService,
+          useValue: {
+            user: {
+              findFirst: jest.fn()
+            }
+          }
+        }
+      ]
+    }).compile();
+
+    expect(() => module.get<JwtStrategy>(JwtStrategy)).toThrow('JWT_SECRET environment variable is not set');
   });
 
   it('should validate and return payload with companyId', async () => {
