@@ -6,101 +6,127 @@ import {
   Typography,
   Button,
   Grid,
-  CircularProgress,
-  Snackbar,
-  Alert,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   TextField,
 } from "@mui/material";
-import { CloudUpload, CheckCircle, Error } from "@mui/icons-material";
+import { CloudUpload } from "@mui/icons-material";
 import { useDropzone } from "react-dropzone";
 import DocumentService from "../services/document.service.js";
 import ClientService from "../services/client.service.js";
+import NotificationService from "../services/notification.service.js";
 import "../styles/PhotoUpload.css";
 import Navbar from '../components/Navbar';
 
 const PhotoUpload = () => {
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState({ success: [], error: [] });
-  const [notification, setNotification] = useState({ open: false, message: "", severity: "info" });
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [title, setTitle] = useState("");
-  const [documentType, setDocumentType] = useState("id"); // Default document type
+  const [documentType, setDocumentType] = useState("id");
   const [loading, setLoading] = useState(false);
+  const [fileError, setFileError] = useState("");
 
   useEffect(() => {
     loadClients();
   }, []);
+
+  useEffect(() => {
+    setFiles([]);
+    setFileError("");
+  }, [documentType]);
 
   const loadClients = async () => {
     setLoading(true);
     try {
       let clients = await ClientService.getClients();
       clients ??= [];
-      console.log(clients);
       setClients(clients);
     } catch (error) {
-      setNotification({
-        open: true,
-        message: "Error loading clients: " + error.message,
-        severity: "error",
-      });
+      NotificationService.notify("Error loading clients: " + error.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const onDrop = (acceptedFiles) => {
+  const onDrop = (acceptedFiles, rejectedFiles) => {
+    // Check if document type is table and validate file types
+    if (documentType === "table") {
+      const allowedExtensions = ['.pdf', '.html', '.docx', '.pptx', '.xlsx', '.xlsm'];
+      const validFiles = acceptedFiles.filter(file => {
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
+      });
+      
+      if (validFiles.length !== acceptedFiles.length) {
+        setFileError("For table documents, only PDF, HTML, DOCX, PPTX, XLSX, and XLSM files are allowed.");
+        // Only add valid files
+        setFiles((prevFiles) => [
+          ...prevFiles,
+          ...validFiles.map((file) => ({
+            file,
+            preview: URL.createObjectURL(file),
+          })),
+        ]);
+        return;
+      }
+    }
+    
+    // If not a table document or all files are valid
+    setFileError("");
     setFiles((prevFiles) => [
       ...prevFiles,
       ...acceptedFiles.map((file) => ({
         file,
         preview: URL.createObjectURL(file),
-        status: "pending",
       })),
     ]);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
-      "application/pdf": [".pdf"],
-    },
+    accept: documentType === "table" 
+      ? {
+          "application/pdf": [".pdf"],
+          "text/html": [".html"],
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+          "application/vnd.ms-excel.sheet.macroEnabled.12": [".xlsm"]
+        }
+      : {
+          "image/*": [".jpeg", ".jpg", ".png"],
+          "application/pdf": [".pdf"],
+        },
     maxSize: 10000000, // 10MB
   });
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!selectedClient) {
-      setNotification({
-        open: true,
-        message: "Please select a client",
-        severity: "error",
-      });
+      NotificationService.notify("Please select a client", "error");
       return;
     }
 
     if (!title) {
-      setNotification({
-        open: true,
-        message: "Please enter a document title",
-        severity: "error",
-      });
+      NotificationService.notify("Please enter a document title", "error");
+      return;
+    }
+    
+    if (files.length === 0) {
+      NotificationService.notify("Please upload at least one file", "error");
+      return;
+    }
+    
+    if (fileError) {
+      NotificationService.notify(fileError, "error");
       return;
     }
 
-    setUploading(true);
-    const uploadPromises = files.map(async (fileObj) => {
-      if (fileObj.status !== "pending") return;
-
-      // Create metadata object following backend DTO structure
+    files.forEach((fileObj) => {
       const metadata = {
         documentType: fileObj.file.type.split("/")[1].toUpperCase(),
         originalName: fileObj.file.name,
@@ -110,63 +136,32 @@ const PhotoUpload = () => {
 
       const documentData = {
         file: fileObj.file,
-        clientId: selectedClient, // Use clientReferenceId for the backend
+        clientId: selectedClient,
         title,
-        documentType, // Add the selected document type
+        documentType,
         metadata,
       };
 
-      console.log("Preparing to upload document:", {
-        ...documentData,
-        file: {
-          name: documentData.file.name,
-          type: documentData.file.type,
-          size: documentData.file.size,
+      NotificationService.notify(`Started uploading "${title}"`, "info");
+
+      DocumentService.uploadDocumentInBackground(
+        documentData,
+        () => {
+          NotificationService.notify(`Successfully uploaded "${title}"`, "success");
         },
-      });
-
-      try {
-        const response = await DocumentService.uploadDocument(documentData);
-        console.log("Upload response:", response);
-
-        setNotification({
-          open: true,
-          message: "File uploaded successfully",
-          severity: "success",
-        });
-        
-        // Navigate to client page after successful upload using the actual client ID
-        navigate(`/client/${selectedClientId}`);
-        
-        return { id: fileObj.file.name, success: true, response: response.data };
-      } catch (error) {
-        console.error("Upload error:", error);
-
-        setNotification({
-          open: true,
-          message: `Error uploading ${fileObj.file.name}: ${
-            error.response?.data?.message || error.message
-          }`,
-          severity: "error",
-        });
-        return { id: fileObj.file.name, success: false, error: error.message };
-      }
+        (error) => {
+          NotificationService.notify(
+            `Error uploading "${title}": ${error.response?.data?.message || error.message}`,
+            "error"
+          );
+        }
+      );
     });
 
-    const results = await Promise.all(uploadPromises);
-
-    setUploadStatus({
-      success: results.filter((r) => r?.success).map((r) => r.id),
-      error: results.filter((r) => r?.success === false).map((r) => r.id),
-    });
-
-    setUploading(false);
-  };
-
-  const getFileStatus = (fileName) => {
-    if (uploadStatus.success.includes(fileName)) return "success";
-    if (uploadStatus.error.includes(fileName)) return "error";
-    return "pending";
+    setFiles([]);
+    setTitle("");
+    NotificationService.notify("Upload process started. You can continue using the site.", "info");
+    navigate(`/client/${selectedClientId}`);
   };
 
   const removeFile = (fileName) => {
@@ -174,7 +169,6 @@ const PhotoUpload = () => {
     URL.revokeObjectURL(files.find((f) => f.file.name === fileName)?.preview);
   };
 
-  // Cleanup previews when component unmounts
   useEffect(() => {
     return () => {
       files.forEach((file) => {
@@ -183,15 +177,11 @@ const PhotoUpload = () => {
     };
   }, []);
 
-  const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
-  };
-
   const handleClientChange = (e) => {
     const client = clients.find(c => c.id === e.target.value);
     if (client) {
-      setSelectedClient(client.clientReferenceId); // Store the reference ID for the backend
-      setSelectedClientId(client.id); // Store the actual ID for navigation
+      setSelectedClient(client.clientReferenceId);
+      setSelectedClientId(client.id);
     } else {
       setSelectedClient("");
       setSelectedClientId("");
@@ -201,132 +191,113 @@ const PhotoUpload = () => {
   return (
     <>
       <Navbar />
-      <Container maxWidth="md" className="photo-upload-container">
-        <Paper elevation={3} className="upload-paper">
-          <Typography variant="h4" gutterBottom>
-            Upload Documents
-          </Typography>
+      <Container className="upload-container">
+        <Typography variant="h4" gutterBottom>
+          Upload Documents
+        </Typography>
 
-          <Grid container spacing={2} className="form-fields">
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Select Client</InputLabel>
-                <Select
-                  value={selectedClientId} // Use actual ID for the select value
-                  onChange={handleClientChange}
-                  label="Select Client"
-                >
-                  {loading ? (
-                    <MenuItem disabled>
-                      <CircularProgress size={20} /> Loading clients...
-                    </MenuItem>
-                  ) : (
-                    clients.map((client) => (
-                      <MenuItem key={client.id} value={client.id}>
-                        {client.name} ({client.clientReferenceId})
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </FormControl>
-            </Grid>
+        <Paper className="upload-paper">
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Client</InputLabel>
+            <Select
+              value={selectedClientId}
+              onChange={handleClientChange}
+              label="Client"
+            >
+              {clients.map((client) => (
+                <MenuItem key={client.id} value={client.id}>
+                  {client.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Document Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </Grid>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Document Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
 
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Document Type</InputLabel>
-                <Select
-                  value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value)}
-                  label="Document Type"
-                >
-                  <MenuItem value="id">ID Card</MenuItem>
-                  <MenuItem value="passport">Passport</MenuItem>
-                  <MenuItem value="driversLicense">Driver's License</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Document Type</InputLabel>
+            <Select
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+              label="Document Type"
+            >
+              <MenuItem value="id">ID</MenuItem>
+              <MenuItem value="passport">Passport</MenuItem>
+              <MenuItem value="driversLicense">Drivers License</MenuItem>
+              <MenuItem value="table">Table</MenuItem>
+            </Select>
+          </FormControl>
 
-          <div {...getRootProps()} className={`dropzone ${isDragActive ? "active" : ""}`}>
+          <div
+            {...getRootProps()}
+            className={`dropzone ${isDragActive ? "active" : ""}`}
+          >
             <input {...getInputProps()} />
-            <CloudUpload sx={{ fontSize: 48, color: "primary.main" }} />
-            <Typography variant="h6">
-              {isDragActive
-                ? "Drop the files here..."
-                : "Drag 'n' drop files here, or click to select"}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Supported formats: JPEG, PNG, PDF (Max 10MB)
-            </Typography>
+            {isDragActive ? (
+              <p>Drop the files here...</p>
+            ) : (
+              <div>
+                <CloudUpload fontSize="large" />
+                <p>Drag and drop files here, or click to select files</p>
+                {documentType === "table" && (
+                  <p className="file-type-info">
+                    For table documents, only PDF, HTML, DOCX, PPTX, XLSX, and XLSM files are allowed.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+          
+          {fileError && (
+            <div className="error-message">
+              {fileError}
+            </div>
+          )}
 
           {files.length > 0 && (
-            <Grid container spacing={2} className="preview-grid">
+            <Grid container spacing={2} className="file-list">
               {files.map((fileObj) => (
-                <Grid item xs={12} sm={6} md={4} key={fileObj.file.name}>
-                  <Paper className="preview-item">
-                    {fileObj.file.type.startsWith("image/") ? (
-                      <img src={fileObj.preview} alt="preview" />
-                    ) : (
-                      <div className="pdf-preview">PDF</div>
-                    )}
-                    <div className="preview-info">
-                      <Typography variant="body2" noWrap>
-                        {fileObj.file.name}
-                      </Typography>
-                      <div className="preview-status">
-                        {getFileStatus(fileObj.file.name) === "success" && (
-                          <CheckCircle color="success" />
-                        )}
-                        {getFileStatus(fileObj.file.name) === "error" && <Error color="error" />}
-                        <Button
-                          size="small"
-                          onClick={() => removeFile(fileObj.file.name)}
-                          disabled={uploading}
-                        >
-                          Remove
-                        </Button>
-                      </div>
+                <Grid item xs={12} key={fileObj.file.name}>
+                  <Paper className="file-item">
+                    <img
+                      src={fileObj.preview}
+                      alt={fileObj.file.name}
+                      className="file-preview"
+                    />
+                    <div className="file-info">
+                      <Typography variant="body1">{fileObj.file.name}</Typography>
                     </div>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => removeFile(fileObj.file.name)}
+                    >
+                      Remove
+                    </Button>
                   </Paper>
                 </Grid>
               ))}
             </Grid>
           )}
 
-          <div className="upload-actions">
+          {files.length > 0 && (
             <Button
               variant="contained"
               color="primary"
               onClick={handleUpload}
-              disabled={!selectedClient || !title || files.length === 0 || uploading}
-              startIcon={uploading ? <CircularProgress size={20} /> : null}
+              className="upload-button"
+              disabled={loading}
             >
-              {uploading ? "Uploading..." : "Upload Files"}
+              Upload Files
             </Button>
-          </div>
+          )}
         </Paper>
-
-        <Snackbar
-          open={notification.open}
-          autoHideDuration={6000}
-          onClose={handleCloseNotification}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert onClose={handleCloseNotification} severity={notification.severity}>
-            {notification.message}
-          </Alert>
-        </Snackbar>
       </Container>
     </>
   );

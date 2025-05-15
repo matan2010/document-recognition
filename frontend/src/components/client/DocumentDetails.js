@@ -24,14 +24,19 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   Description as DescriptionIcon,
   CloudDownload as CloudDownloadIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  FileCopy as FileCopyIcon,
+  TableChart as TableChartIcon,
 } from "@mui/icons-material";
+import * as XLSX from 'xlsx';
 
 const DocumentDetails = ({
   document,
@@ -46,6 +51,7 @@ const DocumentDetails = ({
   const [editFieldDialogOpen, setEditFieldDialogOpen] = useState(false);
   const [editFieldValue, setEditFieldValue] = useState("");
   const [newKeyValue, setNewKeyValue] = useState({ key: "", value: "" });
+  const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
 
   // Parse metadata more safely
   const metadata = (() => {
@@ -360,13 +366,253 @@ const DocumentDetails = ({
     );
   };
 
-  const renderDocumentData = () => {
+  const renderGenericTable = () => {
+    if (metadata.rawResponse && metadata.rawResponse.documentLayout && 
+        metadata.rawResponse.documentLayout.blocks && 
+        metadata.rawResponse.documentLayout.blocks.length > 0) {
+      
+      // Extract table blocks from documentLayout
+      const tableBlock = metadata.rawResponse.documentLayout.blocks.find(block => block.tableBlock);
+      
+      if (tableBlock && tableBlock.tableBlock && tableBlock.tableBlock.bodyRows) {
+        const bodyRows = tableBlock.tableBlock.bodyRows;
+        
+        // First row is the header
+        const headerRow = bodyRows[0];
+        const headerCells = [];
+        
+        // Extract header cells text
+        if (headerRow && headerRow.cells) {
+          headerRow.cells.forEach(cell => {
+            if (cell.blocks && cell.blocks.length > 0) {
+              const textBlock = cell.blocks[0].textBlock;
+              if (textBlock && textBlock.text) {
+                headerCells.push({ text: textBlock.text });
+              }
+            }
+          });
+        }
+        
+        // Create table structure with header row
+        const tableRows = [];
+        
+        // Process remaining rows (skip the header row)
+        for (let i = 1; i < bodyRows.length; i++) {
+          const row = bodyRows[i];
+          const rowCells = [];
+          
+          if (row && row.cells) {
+            row.cells.forEach(cell => {
+              if (cell.blocks && cell.blocks.length > 0) {
+                const textBlock = cell.blocks[0].textBlock;
+                if (textBlock && textBlock.text) {
+                  rowCells.push({ text: textBlock.text });
+                } else {
+                  rowCells.push({ text: '' });
+                }
+              } else {
+                rowCells.push({ text: '' });
+              }
+            });
+          }
+          
+          tableRows.push({ cells: rowCells });
+        }
+        
+        // Store the table data for display
+        const displayTableData = {
+          headers: headerCells.map(cell => cell.text),
+          rows: tableRows.map(row => row.cells.map(cell => cell.text))
+        };
+        
+        // Handle edit button click
+        const handleTableEditClick = () => {
+          // Set the editedData state with our table data
+          setEditedData({
+            _tableData: displayTableData,
+            _isTable: true
+          });
+          // Open the edit dialog
+          setEditDialogOpen(true);
+        };
+        
+        return (
+          <Box mt={3}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Table Data
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                startIcon={<EditIcon />}
+                onClick={handleTableEditClick}
+                size="small"
+              >
+                Edit
+              </Button>
+            </Box>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {headerCells.map((cell, index) => (
+                      <TableCell key={index}>{cell.text}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tableRows.map((row, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {row.cells.map((cell, cellIndex) => (
+                        <TableCell key={cellIndex}>{cell.text}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        );
+      }
+    }
+    
+    // Return empty if no table data found
+    return null;
+  };
+
+  const extractTableData = () => {
+    if (metadata.rawResponse && 
+        metadata.rawResponse.documentLayout && 
+        metadata.rawResponse.documentLayout.blocks) {
+      
+      // Find table block
+      const tableBlock = metadata.rawResponse.documentLayout.blocks.find(block => block.tableBlock);
+      
+      if (tableBlock && tableBlock.tableBlock && tableBlock.tableBlock.bodyRows) {
+        const bodyRows = tableBlock.tableBlock.bodyRows;
+        
+        // Extract headers
+        const headerRow = bodyRows[0];
+        const headers = [];
+        
+        if (headerRow && headerRow.cells) {
+          headerRow.cells.forEach(cell => {
+            if (cell.blocks && cell.blocks.length > 0) {
+              const textBlock = cell.blocks[0].textBlock;
+              if (textBlock && textBlock.text) {
+                headers.push(textBlock.text);
+              }
+            }
+          });
+        }
+        
+        // Extract data rows
+        const rows = [];
+        for (let i = 1; i < bodyRows.length; i++) {
+          const row = bodyRows[i];
+          const rowData = [];
+          
+          if (row && row.cells) {
+            row.cells.forEach(cell => {
+              if (cell.blocks && cell.blocks.length > 0) {
+                const textBlock = cell.blocks[0].textBlock;
+                if (textBlock && textBlock.text) {
+                  rowData.push(textBlock.text);
+                } else {
+                  rowData.push('');
+                }
+              } else {
+                rowData.push('');
+              }
+            });
+          }
+          
+          rows.push(rowData);
+        }
+        
+        return { headers, rows };
+      }
+    }
+    
+    return null;
+  };
+
+  const extractDocumentData = () => {
     const docType = metadata.documentType?.toLowerCase() || '';
     
+    // For table documents, use the existing table extraction
+    if (docType.includes('table') || docType === 'table') {
+      return extractTableData();
+    }
+    
+    // For other document types, extract structured data
+    const data = { headers: ['Field', 'Value'], rows: [] };
+    
+    // Use structured data if available
+    if (metadata.structuredData && Object.keys(metadata.structuredData).length > 0) {
+      Object.entries(metadata.structuredData).forEach(([key, value]) => {
+        data.rows.push([key, value]);
+      });
+      return data;
+    }
+    
+    // Fallback to raw entities if available
+    if (metadata.rawResponse && Array.isArray(metadata.rawResponse.entities)) {
+      metadata.rawResponse.entities.forEach((entity) => {
+        if (entity.type && entity.mentionText) {
+          const value = entity.normalizedValue?.text || entity.mentionText;
+          data.rows.push([entity.type, value]);
+        }
+      });
+      return data;
+    }
+    
+    return null;
+  };
+
+  const exportToExcel = () => {
+    const data = extractDocumentData();
+    
+    if (data) {
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet([
+        data.headers,
+        ...data.rows
+      ]);
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Document Data");
+      
+      // Generate Excel file
+      const fileName = `${document.name || 'document-data'}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    } else {
+      alert("No data found to export to Excel");
+    }
+    
+    // Close the menu
+    setDownloadMenuAnchor(null);
+  };
+
+  const handleDownloadClick = (event) => {
+    setDownloadMenuAnchor(event.currentTarget);
+  };
+
+  const handleDownloadMenuClose = () => {
+    setDownloadMenuAnchor(null);
+  };
+
+  const renderDocumentData = () => {
+    const docType = metadata.documentType?.toLowerCase() || '';
     if (docType.includes('driversLicense') || docType === 'driverslicense') {
       return renderDriversLicenseData();
     } else if (docType.includes('passport')) {
       return renderPassportData();
+    } else if (docType.includes('table') || docType === 'table') {
+      // If the document type indicates it's a table, render it using the generic table function
+      return renderGenericTable();
     } else {
       // Default to ID card for any other type or when type is not specified
       return renderIdCardData();
@@ -386,12 +632,67 @@ const DocumentDetails = ({
   const handleSaveChanges = () => {
     // Here you would typically call an API to update the document
     if (onUpdateDocument) {
-      onUpdateDocument(document.id, {
-        metadata: JSON.stringify({
-          ...metadata,
-          structuredData: editedData,
-        }),
-      });
+      // Check if we're dealing with table data
+      if (editedData._isTable && editedData._tableData) {
+        const tableData = editedData._tableData;
+        
+        // Reconstruct the table block
+        const headerCells = tableData.headers.map(header => ({
+          blocks: [{
+            textBlock: {
+              text: header
+            }
+          }]
+        }));
+        
+        // Create body rows from the edited data
+        const bodyRows = [
+          { cells: headerCells }, // Header row
+          ...tableData.rows.map(row => ({
+            cells: row.map(cellText => ({
+              blocks: [{
+                textBlock: {
+                  text: cellText
+                }
+              }]
+            }))
+          }))
+        ];
+        
+        // Create the updated table block
+        const updatedTableBlock = {
+          tableBlock: {
+            bodyRows: bodyRows
+          }
+        };
+        
+        // Update the document layout with the new table
+        const updatedDocumentLayout = {
+          ...metadata.rawResponse.documentLayout,
+          blocks: metadata.rawResponse.documentLayout.blocks.map(block => 
+            block.tableBlock ? updatedTableBlock : block
+          )
+        };
+        
+        // Update the document with the new layout - as an object, not a string
+        onUpdateDocument(document.id, {
+          metadata: {
+            ...metadata,
+            rawResponse: {
+              ...metadata.rawResponse,
+              documentLayout: updatedDocumentLayout
+            }
+          }
+        });
+      } else {
+        // Handle regular data updates - as an object, not a string
+        onUpdateDocument(document.id, {
+          metadata: {
+            ...metadata,
+            structuredData: editedData,
+          }
+        });
+      }
     }
     handleEditDialogClose();
   };
@@ -420,10 +721,22 @@ const DocumentDetails = ({
               </IconButton>
             </Tooltip>
             <Tooltip title="Download">
-              <IconButton onClick={onDownloadDocument} size="large">
+              <IconButton onClick={handleDownloadClick} size="large">
                 <CloudDownloadIcon />
               </IconButton>
             </Tooltip>
+            <Menu
+              anchorEl={downloadMenuAnchor}
+              open={Boolean(downloadMenuAnchor)}
+              onClose={handleDownloadMenuClose}
+            >
+              <MenuItem onClick={exportToExcel}>
+                <ListItemIcon>
+                  <TableChartIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Export as Excel" />
+              </MenuItem>
+            </Menu>
             <Tooltip title="Delete Document">
               <IconButton onClick={handleDeleteDocument} size="large" color="error">
                 <DeleteIcon />
@@ -438,15 +751,25 @@ const DocumentDetails = ({
               Document Type
             </Typography>
             <Typography variant="body1">
-              {metadata.documentType === 'ID_CARD' ? 'Israeli ID Card' : 'Unknown'}
+              {(() => {
+                const docType = metadata.documentType?.toLowerCase() || '';
+                if (docType === 'id_card') return 'Israeli ID Card';
+                if (docType.includes('driverslicense') || docType === 'driverslicense') return 'Driver\'s License';
+                if (docType.includes('passport')) return 'Passport';
+                if (docType.includes('table') || docType === 'table') return 'Table Document';
+                if (docType) return metadata.documentType; // Return original if not matching any known type
+                return 'Unknown';
+              })()}
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Confidence Score
-            </Typography>
-            <Typography variant="body1">{(confidence * 100).toFixed(2)}%</Typography>
-          </Grid>
+          {!(metadata.documentType?.toLowerCase()?.includes('table') || metadata.documentType === 'table') && (
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Confidence Score
+              </Typography>
+              <Typography variant="body1">{(confidence * 100).toFixed(2)}%</Typography>
+            </Grid>
+          )}
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" color="text.secondary">
               Processed At
@@ -468,98 +791,254 @@ const DocumentDetails = ({
       <Dialog open={editDialogOpen} onClose={handleEditDialogClose} maxWidth="md" fullWidth>
         <DialogTitle>Edit Extracted Data</DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 2, mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Add New Field
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={5}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Field Name"
-                  value={newKeyValue.key}
-                  onChange={(e) => setNewKeyValue({ ...newKeyValue, key: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={5}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Value"
-                  value={newKeyValue.value}
-                  onChange={(e) => setNewKeyValue({ ...newKeyValue, value: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={2}>
+          {editedData._isTable ? (
+            <Box sx={{ mb: 2, mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Edit Table Data
+              </Typography>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      {editedData._tableData.headers.map((header, headerIndex) => (
+                        <TableCell key={headerIndex}>
+                          <Box display="flex" alignItems="center">
+                            <TextField
+                              fullWidth
+                              size="small"
+                              value={header}
+                              onChange={(e) => {
+                                const newHeaders = [...editedData._tableData.headers];
+                                newHeaders[headerIndex] = e.target.value;
+                                setEditedData({
+                                  ...editedData,
+                                  _tableData: {
+                                    ...editedData._tableData,
+                                    headers: newHeaders
+                                  }
+                                });
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                // Remove this column
+                                const newHeaders = [...editedData._tableData.headers];
+                                newHeaders.splice(headerIndex, 1);
+                                
+                                // Also remove this column from all rows
+                                const newRows = editedData._tableData.rows.map(row => {
+                                  const newRow = [...row];
+                                  newRow.splice(headerIndex, 1);
+                                  return newRow;
+                                });
+                                
+                                setEditedData({
+                                  ...editedData,
+                                  _tableData: {
+                                    headers: newHeaders,
+                                    rows: newRows
+                                  }
+                                });
+                              }}
+                              color="error"
+                              sx={{ ml: 1 }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      ))}
+                      <TableCell width={100}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            // Add a new column
+                            const newHeaders = [...editedData._tableData.headers, `Column ${editedData._tableData.headers.length + 1}`];
+                            
+                            // Add an empty cell to each row for this column
+                            const newRows = editedData._tableData.rows.map(row => {
+                              return [...row, ''];
+                            });
+                            
+                            setEditedData({
+                              ...editedData,
+                              _tableData: {
+                                headers: newHeaders,
+                                rows: newRows
+                              }
+                            });
+                          }}
+                        >
+                          Add Column
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {editedData._tableData.rows.map((row, rowIndex) => (
+                      <TableRow key={rowIndex}>
+                        {row.map((cell, cellIndex) => (
+                          <TableCell key={cellIndex}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              value={cell}
+                              onChange={(e) => {
+                                const newRows = [...editedData._tableData.rows];
+                                newRows[rowIndex][cellIndex] = e.target.value;
+                                setEditedData({
+                                  ...editedData,
+                                  _tableData: {
+                                    ...editedData._tableData,
+                                    rows: newRows
+                                  }
+                                });
+                              }}
+                            />
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const newRows = [...editedData._tableData.rows];
+                              newRows.splice(rowIndex, 1);
+                              setEditedData({
+                                ...editedData,
+                                _tableData: {
+                                  ...editedData._tableData,
+                                  rows: newRows
+                                }
+                              });
+                            }}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <Box mt={2} display="flex" gap={2}>
                 <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={handleAddKeyValue}
-                  disabled={!newKeyValue.key || !newKeyValue.value}
+                  variant="outlined"
+                  onClick={() => {
+                    const newRows = [...editedData._tableData.rows];
+                    const emptyRow = Array(editedData._tableData.headers.length).fill('');
+                    newRows.push(emptyRow);
+                    setEditedData({
+                      ...editedData,
+                      _tableData: {
+                        ...editedData._tableData,
+                        rows: newRows
+                      }
+                    });
+                  }}
                 >
-                  Add
+                  Add Row
                 </Button>
-              </Grid>
-            </Grid>
-          </Box>
+              </Box>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ mb: 2, mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Add New Field
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={5}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Field Name"
+                      value={newKeyValue.key}
+                      onChange={(e) => setNewKeyValue({ ...newKeyValue, key: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={5}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Value"
+                      value={newKeyValue.value}
+                      onChange={(e) => setNewKeyValue({ ...newKeyValue, value: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={2}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={handleAddKeyValue}
+                      disabled={!newKeyValue.key || !newKeyValue.value}
+                    >
+                      Add
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
 
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Field</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell width={100}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(editedData).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={key}
-                        onChange={(e) => {
-                          const newData = { ...editedData };
-                          delete newData[key];
-                          newData[e.target.value] = value;
-                          setEditedData(newData);
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={value}
-                        onChange={(e) => {
-                          setEditedData({
-                            ...editedData,
-                            [key]: e.target.value,
-                          });
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          const newData = { ...editedData };
-                          delete newData[key];
-                          setEditedData(newData);
-                        }}
-                        color="error"
-                      >
-                        ×
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Field</TableCell>
+                      <TableCell>Value</TableCell>
+                      <TableCell width={100}>Action</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(editedData).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={key}
+                            onChange={(e) => {
+                              const newData = { ...editedData };
+                              delete newData[key];
+                              newData[e.target.value] = value;
+                              setEditedData(newData);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={value}
+                            onChange={(e) => {
+                              setEditedData({
+                                ...editedData,
+                                [key]: e.target.value,
+                              });
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const newData = { ...editedData };
+                              delete newData[key];
+                              setEditedData(newData);
+                            }}
+                            color="error"
+                          >
+                            ×
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleEditDialogClose}>Cancel</Button>
