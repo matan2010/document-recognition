@@ -284,16 +284,24 @@ describe('ClientsController', () => {
         updatedAt: new Date(),
       };
 
-      // Level 4 (innermost) - The actual client data
+      // Level 5 (innermost) - The actual client data
       const clientDataWithDeletedAt = {
         ...baseClientData,
         deletedAt: baseClientData.updatedAt.toISOString(),
       };
 
+      // Level 4
+      const fourthLevelDeletedClient = {
+        deletedAt: baseClientData.updatedAt.toISOString(),
+        deletedClient: clientDataWithDeletedAt,
+        message: 'Client deleted successfully',
+        success: true,
+      };
+
       // Level 3
       const thirdLevelDeletedClient = {
         deletedAt: baseClientData.updatedAt.toISOString(),
-        deletedClient: clientDataWithDeletedAt,
+        deletedClient: fourthLevelDeletedClient,
         message: 'Client deleted successfully',
         success: true,
       };

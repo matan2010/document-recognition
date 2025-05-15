@@ -104,11 +104,9 @@ describe('CompaniesController', () => {
       expect(mockCompaniesService.findOne).toHaveBeenCalledWith(companyId);
     });
 
-    it('should throw UnauthorizedException for non-admin users accessing other companies', async () => {
-      const otherCompanyId = 'other-company-id';
-
+    it('should throw UnauthorizedException for non-admin users', async () => {
       await expect(
-        controller.findOne(mockUserRequest, otherCompanyId),
+        controller.findOne(mockUserRequest, mockUserRequest.user.companyId),
       ).rejects.toThrow(
         new UnauthorizedException(
           'Only admin users can access other companies',
@@ -116,7 +114,9 @@ describe('CompaniesController', () => {
       );
       expect(mockCompaniesService.findOne).not.toHaveBeenCalled();
     });
+  });
 
+  describe('findCurrent', () => {
     it('should allow users to access their own company', async () => {
       const expectedResult = {
         id: mockUserRequest.user.companyId,
@@ -127,7 +127,7 @@ describe('CompaniesController', () => {
 
       mockCompaniesService.findOne.mockResolvedValue(expectedResult);
 
-      const result = await controller.findOne(
+      const result = await controller.findCurrent(
         mockUserRequest,
         mockUserRequest.user.companyId,
       );
@@ -136,26 +136,6 @@ describe('CompaniesController', () => {
       expect(mockCompaniesService.findOne).toHaveBeenCalledWith(
         mockUserRequest.user.companyId,
       );
-    });
-  });
-
-  describe('findCurrent', () => {
-    const companyId = 'company-id';
-
-    it('should return the current company', async () => {
-      const expectedResult = {
-        id: companyId,
-        name: 'Test Company',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockCompaniesService.findOne.mockResolvedValue(expectedResult);
-
-      const result = await controller.findCurrent(mockAdminRequest, companyId);
-
-      expect(result).toEqual(expectedResult);
-      expect(mockCompaniesService.findOne).toHaveBeenCalledWith(companyId);
     });
   });
 
@@ -237,18 +217,25 @@ describe('CompaniesController', () => {
     const companyId = 'company-id';
 
     it('should delete a company for admin users', async () => {
-      const expectedResult = {
+      const deletedCompany = {
         id: companyId,
         name: 'Test Company',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockCompaniesService.remove.mockResolvedValue(expectedResult);
+      mockCompaniesService.remove.mockResolvedValue({ deletedCompany });
 
       const result = await controller.remove(mockAdminRequest, companyId);
 
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual({
+        success: true,
+        message: 'Company deleted successfully',
+        deletedCompany: {
+          ...deletedCompany,
+          deletedAt: expect.any(String),
+        },
+      });
       expect(mockCompaniesService.remove).toHaveBeenCalledWith(companyId);
     });
 
@@ -263,24 +250,29 @@ describe('CompaniesController', () => {
   });
 
   describe('removeCurrent', () => {
-    const companyId = 'company-id';
+    const companyId = 'user-company-id';
 
     it('should delete current company for any user', async () => {
-      const expectedResult = {
+      const deletedCompany = {
         id: mockUserRequest.user.companyId,
         name: 'Test Company',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockCompaniesService.removeCurrent.mockResolvedValue(expectedResult);
+      mockCompaniesService.remove.mockResolvedValue({ deletedCompany });
 
       const result = await controller.removeCurrent(mockUserRequest, companyId);
 
-      expect(result).toEqual(expectedResult);
-      expect(mockCompaniesService.removeCurrent).toHaveBeenCalledWith(
-        companyId,
-      );
+      expect(result).toEqual({
+        success: true,
+        message: 'Company deleted successfully',
+        deletedCompany: {
+          ...deletedCompany,
+          deletedAt: expect.any(String),
+        },
+      });
+      expect(mockCompaniesService.remove).toHaveBeenCalledWith(companyId);
     });
   });
 });
