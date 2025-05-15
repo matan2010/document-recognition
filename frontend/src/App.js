@@ -15,6 +15,7 @@ import DownloadComponent from './components/DownloadComponent';
 import SignUp from './components/SignUp';
 import SignUpCompany from './components/SignUpCompany';
 import GlobalNotification from './components/GlobalNotification';
+import ApiSpec from './pages/ApiSpec';
 
 const theme = createTheme({
   palette: {
@@ -113,6 +114,15 @@ function App() {
               element={
                 <PrivateRoute>
                   <Profile />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/api-spec"
+              element={
+                <PrivateRoute>
+                  <ApiSpec />
                 </PrivateRoute>
               }
             />
