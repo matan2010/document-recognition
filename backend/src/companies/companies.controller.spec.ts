@@ -179,20 +179,19 @@ describe('CompaniesController', () => {
   });
 
   describe('updateCurrent', () => {
-    const companyId = 'company-id';
-    const updateCompanyDto: UpdateCompanyDto = {
-      name: 'Updated Company',
-    };
-
     it('should update current company for any user', async () => {
       const mockResponse = {
-        id: companyId,
-        name: updateCompanyDto.name,
+        id: mockUserRequest.user.companyId,
+        name: 'Updated Company',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockCompaniesService.updateCurrent.mockResolvedValue(mockResponse);
+      const updateCompanyDto: UpdateCompanyDto = {
+        name: 'Updated Company',
+      };
+
+      mockCompaniesService.update.mockResolvedValue(mockResponse);
 
       const result = await controller.updateCurrent(
         mockUserRequest,
@@ -206,7 +205,7 @@ describe('CompaniesController', () => {
         updatedAt: expect.any(Date),
       });
 
-      expect(mockCompaniesService.updateCurrent).toHaveBeenCalledWith(
+      expect(mockCompaniesService.update).toHaveBeenCalledWith(
         mockUserRequest.user.companyId,
         updateCompanyDto,
       );
