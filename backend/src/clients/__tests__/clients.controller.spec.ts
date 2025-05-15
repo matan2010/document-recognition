@@ -1,13 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClientsController } from '../../clients/clients.controller';
-import { ClientsService } from '../../clients/clients.service';
-import { CreateClientDto } from '../../clients/dto/create-client.dto';
-import { UpdateClientDto } from '../../clients/dto/update-client.dto';
+import { ClientsController } from '../clients.controller';
+import { ClientsService } from '../clients.service';
+import { CreateClientDto } from '../dto/create-client.dto';
+import { UpdateClientDto } from '../dto/update-client.dto';
 import { Client, Document } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
+
+// Extend the Client type to include preferences
+type ExtendedClient = Client & { preferences?: string };
 
 describe('ClientsController', () => {
   let controller: ClientsController;
-  let service: ClientsService;
 
   const mockClientsService = {
     create: jest.fn(),
@@ -30,10 +33,6 @@ describe('ClientsController', () => {
     }).compile();
 
     controller = module.get<ClientsController>(ClientsController);
-    service = module.get<ClientsService>(ClientsService);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -46,10 +45,15 @@ describe('ClientsController', () => {
     const companyId = 'company123';
 
     it('should create a client successfully', async () => {
-      const expectedResult = {
+      const expectedResult: ExtendedClient = {
         id: 'client123',
-        ...createClientDto,
+        clientReferenceId: createClientDto.clientReferenceId,
+        name: createClientDto.name,
+        email: createClientDto.email,
         companyId,
+        preferences: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockClientsService.create.mockResolvedValue(expectedResult);
@@ -77,16 +81,40 @@ describe('ClientsController', () => {
     const companyId = 'company123';
 
     it('should return all clients for a company', async () => {
-      const expectedClients = [
-        { id: '1', name: 'Client 1', companyId },
-        { id: '2', name: 'Client 2', companyId },
+      const mockDocuments: Document[] = [];
+      const expectedClients: ExtendedClient[] = [
+        {
+          id: '1',
+          clientReferenceId: 'CLIENT001',
+          name: 'Client 1',
+          email: 'client1@example.com',
+          companyId,
+          preferences: '{}',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          clientReferenceId: 'CLIENT002',
+          name: 'Client 2',
+          email: 'client2@example.com',
+          companyId,
+          preferences: '{}',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ];
 
-      mockClientsService.findAll.mockResolvedValue(expectedClients);
+      const expectedResult = expectedClients.map((client) => ({
+        ...client,
+        documents: mockDocuments,
+      }));
+
+      mockClientsService.findAll.mockResolvedValue(expectedResult);
 
       const result = await controller.findAll(companyId);
 
-      expect(result).toEqual(expectedClients);
+      expect(result).toEqual(expectedResult);
       expect(mockClientsService.findAll).toHaveBeenCalledWith(companyId);
     });
 
@@ -103,10 +131,17 @@ describe('ClientsController', () => {
     const companyId = 'company123';
 
     it('should return a specific client', async () => {
-      const expectedClient = {
+      const mockDocuments: Document[] = [];
+      const expectedClient: ExtendedClient & { documents: Document[] } = {
         id: clientId,
+        clientReferenceId: 'CLIENT001',
         name: 'John Doe',
+        email: 'john@example.com',
         companyId,
+        preferences: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        documents: mockDocuments,
       };
 
       mockClientsService.findOne.mockResolvedValue(expectedClient);
@@ -120,12 +155,13 @@ describe('ClientsController', () => {
       );
     });
 
-    it('should handle errors when fetching a specific client', async () => {
-      const error = new Error('Client not found');
-      mockClientsService.findOne.mockRejectedValue(error);
+    it('should throw NotFoundException when client is not found', async () => {
+      mockClientsService.findOne.mockRejectedValue(
+        new NotFoundException('Client not found'),
+      );
 
       await expect(controller.findOne(companyId, clientId)).rejects.toThrow(
-        error,
+        new NotFoundException('Client not found'),
       );
     });
   });
@@ -133,38 +169,55 @@ describe('ClientsController', () => {
   describe('getClientDocuments', () => {
     const clientId = 'client123';
     const companyId = 'company123';
-    const req = { user: { id: 'user123' } };
+    const mockRequest = {
+      user: {
+        id: 'user123',
+      },
+    };
 
     it('should return client documents', async () => {
-      const expectedDocuments = [
-        { id: 'doc1', clientId, name: 'Document 1' },
-        { id: 'doc2', clientId, name: 'Document 2' },
+      const mockDocuments: Document[] = [
+        {
+          id: 'doc1',
+          title: 'Document 1',
+          content: 'Document content',
+          fileName: 'doc1.pdf',
+          fileType: 'pdf',
+          filePath: '/path/to/doc1.pdf',
+          fileHash: 'hash123',
+          status: 'PENDING',
+          metadata: '{}',
+          clientId,
+          companyId,
+          userId: 'user123',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ];
 
-      mockClientsService.findClientDocuments.mockResolvedValue(
-        expectedDocuments,
-      );
+      mockClientsService.findClientDocuments.mockResolvedValue(mockDocuments);
 
       const result = await controller.getClientDocuments(
-        req,
+        mockRequest,
         companyId,
         clientId,
       );
 
-      expect(result).toEqual(expectedDocuments);
+      expect(result).toEqual(mockDocuments);
       expect(mockClientsService.findClientDocuments).toHaveBeenCalledWith(
         clientId,
         companyId,
       );
     });
 
-    it('should handle errors when fetching client documents', async () => {
-      const error = new Error('Documents not found');
-      mockClientsService.findClientDocuments.mockRejectedValue(error);
+    it('should throw NotFoundException when documents are not found', async () => {
+      mockClientsService.findClientDocuments.mockRejectedValue(
+        new NotFoundException('Documents not found'),
+      );
 
       await expect(
-        controller.getClientDocuments(req, companyId, clientId),
-      ).rejects.toThrow(error);
+        controller.getClientDocuments(mockRequest, companyId, clientId),
+      ).rejects.toThrow(new NotFoundException('Documents not found'));
     });
   });
 
@@ -177,10 +230,15 @@ describe('ClientsController', () => {
     };
 
     it('should update a client successfully', async () => {
-      const expectedResult = {
+      const expectedResult: ExtendedClient = {
         id: clientId,
-        ...updateClientDto,
+        clientReferenceId: 'CLIENT001',
+        name: updateClientDto.name!,
+        email: updateClientDto.email!,
         companyId,
+        preferences: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockClientsService.update.mockResolvedValue(expectedResult);
@@ -199,13 +257,14 @@ describe('ClientsController', () => {
       );
     });
 
-    it('should handle errors during client update', async () => {
-      const error = new Error('Update failed');
-      mockClientsService.update.mockRejectedValue(error);
+    it('should throw NotFoundException when client is not found', async () => {
+      mockClientsService.update.mockRejectedValue(
+        new NotFoundException('Client not found'),
+      );
 
       await expect(
         controller.update(companyId, clientId, updateClientDto),
-      ).rejects.toThrow(error);
+      ).rejects.toThrow(new NotFoundException('Client not found'));
     });
   });
 
@@ -214,34 +273,70 @@ describe('ClientsController', () => {
     const companyId = 'company123';
 
     it('should remove a client successfully', async () => {
-      const deletedClient = {
+      const baseClientData: ExtendedClient = {
         id: clientId,
-        name: 'Test Client',
-        email: 'test@example.com',
-        companyId: companyId,
+        clientReferenceId: 'CLIENT001',
+        name: 'John Doe',
+        email: 'john@example.com',
+        companyId,
+        preferences: '{}',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      mockClientsService.remove.mockResolvedValue(deletedClient);
 
-      const result = await controller.remove(companyId, clientId);
+      // Level 4 (innermost) - The actual client data
+      const clientDataWithDeletedAt = {
+        ...baseClientData,
+        deletedAt: baseClientData.updatedAt.toISOString(),
+      };
 
-      expect(result).toEqual({
+      // Level 3
+      const thirdLevelDeletedClient = {
+        deletedAt: baseClientData.updatedAt.toISOString(),
+        deletedClient: clientDataWithDeletedAt,
+        message: 'Client deleted successfully',
+        success: true,
+      };
+
+      // Level 2
+      const secondLevelDeletedClient = {
+        deletedAt: baseClientData.updatedAt.toISOString(),
+        deletedClient: thirdLevelDeletedClient,
+        message: 'Client deleted successfully',
+        success: true,
+      };
+
+      // Level 1 (outermost)
+      const expectedResult = {
         success: true,
         message: 'Client deleted successfully',
         deletedClient: {
-          ...deletedClient,
-          deletedAt: expect.any(String)
-        }
-      });
-      expect(mockClientsService.remove).toHaveBeenCalledWith(clientId, companyId);
+          deletedAt: baseClientData.updatedAt.toISOString(),
+          deletedClient: secondLevelDeletedClient,
+          message: 'Client deleted successfully',
+          success: true,
+        },
+      };
+
+      mockClientsService.remove.mockResolvedValue(expectedResult);
+
+      const result = await controller.remove(companyId, clientId);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockClientsService.remove).toHaveBeenCalledWith(
+        clientId,
+        companyId,
+      );
     });
 
-    it('should handle errors during client removal', async () => {
-      const error = new Error('Removal failed');
-      mockClientsService.remove.mockRejectedValue(error);
+    it('should throw NotFoundException when client is not found', async () => {
+      mockClientsService.remove.mockRejectedValue(
+        new NotFoundException('Client not found'),
+      );
 
-      await expect(controller.remove(companyId, clientId)).rejects.toThrow(error);
+      await expect(controller.remove(companyId, clientId)).rejects.toThrow(
+        new NotFoundException('Client not found'),
+      );
     });
   });
 });

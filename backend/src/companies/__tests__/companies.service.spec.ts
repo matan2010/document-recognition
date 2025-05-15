@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 
 describe('CompaniesService', () => {
   let service: CompaniesService;
-  let prismaService: PrismaService;
+  // let prismaService: PrismaService;
 
   const mockPrismaService = {
     company: {
@@ -31,7 +31,7 @@ describe('CompaniesService', () => {
     }).compile();
 
     service = module.get<CompaniesService>(CompaniesService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    // prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -79,7 +79,9 @@ describe('CompaniesService', () => {
       const error = new Error('Database error');
       mockPrismaService.company.create.mockRejectedValue(error);
 
-      await expect(service.create(createCompanyDto, createdByUserId)).rejects.toThrow(error);
+      await expect(
+        service.create(createCompanyDto, createdByUserId),
+      ).rejects.toThrow(error);
     });
   });
 
@@ -142,7 +144,9 @@ describe('CompaniesService', () => {
     it('should throw NotFoundException when company not found', async () => {
       mockPrismaService.company.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne(companyId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(companyId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -219,7 +223,9 @@ describe('CompaniesService', () => {
       });
       mockPrismaService.company.delete.mockRejectedValue(error);
 
-      await expect(service.remove(companyId)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(companyId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -267,4 +273,4 @@ describe('CompaniesService', () => {
       );
     });
   });
-}); 
+});

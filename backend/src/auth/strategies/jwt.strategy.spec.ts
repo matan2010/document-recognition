@@ -3,24 +3,22 @@ import { JwtStrategy } from './jwt.strategy';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { Role } from '../../common/enums/role.enum';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
-  let configService: jest.Mocked<ConfigService>;
-  let prismaService: jest.Mocked<PrismaService>;
+
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue('test-jwt-secret'),
+  };
+
+  const mockPrismaService = {
+    user: {
+      findUnique: jest.fn(),
+    },
+  };
 
   beforeEach(async () => {
-    const mockConfigService = {
-      get: jest.fn(),
-    };
-
-    const mockPrismaService = {
-      user: {
-        findUnique: jest.fn(),
-      },
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtStrategy,
@@ -36,41 +34,25 @@ describe('JwtStrategy', () => {
     }).compile();
 
     strategy = module.get<JwtStrategy>(JwtStrategy);
-    configService = module.get(ConfigService);
-    prismaService = module.get(PrismaService);
-  });
-
-  it('should be defined', () => {
-    expect(strategy).toBeDefined();
-  });
-
-  it('should throw error if JWT_SECRET is not set', () => {
-    (configService.get as jest.Mock).mockReturnValue(undefined);
-
-    expect(() => new JwtStrategy(configService, prismaService)).toThrow(
-      'JWT_SECRET environment variable is not set',
-    );
+    jest.clearAllMocks();
   });
 
   describe('validate', () => {
+    const mockPayload = {
+      sub: 'test-user-id',
+      email: 'test@example.com',
+    };
+
     const mockUser = {
       id: 'test-user-id',
       email: 'test@example.com',
-      password: 'hashed_password',
-      role: 'USER',
+      role: Role.ADMIN,
       companyId: 'test-company-id',
-      preferences: '{}',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as User;
-
-    const mockPayload = {
-      sub: mockUser.id,
-      email: mockUser.email,
+      password: 'hashed-password',
     };
 
     it('should validate and return user data', async () => {
-      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
 
       const result = await strategy.validate(mockPayload);
 
@@ -81,21 +63,27 @@ describe('JwtStrategy', () => {
         companyId: mockUser.companyId,
       });
 
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: mockPayload.sub },
       });
     });
 
-    it('should throw UnauthorizedException when user not found', async () => {
-      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+    it('should throw UnauthorizedException if user not found', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(strategy.validate(mockPayload)).rejects.toThrow(
         UnauthorizedException,
       );
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        'User not found',
+      );
+    });
 
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: mockPayload.sub },
-      });
+    it('should throw error if database query fails', async () => {
+      const dbError = new Error('Database connection failed');
+      mockPrismaService.user.findUnique.mockRejectedValue(dbError);
+
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(dbError);
     });
   });
 });

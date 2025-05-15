@@ -11,8 +11,6 @@ jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 
 describe('AuthService', () => {
   let service: AuthService;
-  let jwtService: JwtService;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     user: {
@@ -28,11 +26,11 @@ describe('AuthService', () => {
     company: {
       create: jest.fn(),
     },
-    $transaction: jest.fn(),
+    $transaction: jest.fn((operations) => Promise.all(operations)),
   };
 
   const mockJwtService = {
-    sign: jest.fn(),
+    sign: jest.fn(() => 'mock-jwt-token'),
   };
 
   beforeEach(async () => {
@@ -51,11 +49,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService);
-    prismaService = module.get<PrismaService>(PrismaService);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -65,6 +58,7 @@ describe('AuthService', () => {
       email: 'test@example.com',
       password: 'hashedPassword',
       role: Role.ADMIN,
+      companyId: 'company123',
     };
 
     beforeEach(() => {
@@ -79,6 +73,7 @@ describe('AuthService', () => {
       const { password, ...expectedResult } = mockUser;
 
       expect(result).toEqual(expectedResult);
+      expect(bcrypt.compare).toHaveBeenCalledWith('password', 'hashedPassword');
     });
 
     it('should throw UnauthorizedException for non-existent user', async () => {
@@ -107,12 +102,13 @@ describe('AuthService', () => {
       companyId: 'company123',
     };
 
-    beforeEach(() => {
-      mockJwtService.sign.mockReturnValue('mock-jwt-token');
-    });
-
     it('should generate tokens and return user data', async () => {
-      mockPrismaService.refreshToken.create.mockResolvedValue({});
+      mockPrismaService.refreshToken.create.mockResolvedValue({
+        id: 'token123',
+        token: 'mock-uuid',
+        userId: mockUser.id,
+        expiresAt: expect.any(Date),
+      });
 
       const result = await service.login(mockUser);
 
@@ -122,7 +118,13 @@ describe('AuthService', () => {
         user: mockUser,
       });
 
-      expect(mockPrismaService.refreshToken.create).toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.create).toHaveBeenCalledWith({
+        data: {
+          token: 'mock-uuid',
+          userId: mockUser.id,
+          expiresAt: expect.any(Date),
+        },
+      });
     });
   });
 
@@ -142,16 +144,16 @@ describe('AuthService', () => {
     };
 
     it('should refresh tokens successfully', async () => {
-      mockPrismaService.refreshToken.findUnique.mockResolvedValue(
-        mockSavedToken,
-      );
-      mockPrismaService.$transaction.mockResolvedValue([{}, {}]);
-      mockJwtService.sign.mockReturnValue('new-mock-jwt-token');
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue(mockSavedToken);
+      mockPrismaService.$transaction.mockResolvedValue([
+        { id: 'old-token', revokedAt: new Date() },
+        { id: 'new-token', token: 'mock-uuid' },
+      ]);
 
       const result = await service.refreshToken('valid-refresh-token');
 
       expect(result).toEqual({
-        access_token: 'new-mock-jwt-token',
+        access_token: 'mock-jwt-token',
         refresh_token: 'mock-uuid',
         user: {
           id: mockSavedToken.user.id,
@@ -216,28 +218,32 @@ describe('AuthService', () => {
       adminPassword: 'password123',
     };
 
+    const mockUser = {
+      id: 'user123',
+      email: bootstrapDto.adminEmail,
+      password: 'hashed-password',
+      role: Role.ADMIN,
+      companyId: 'company123',
+    };
+
+    const mockCompany = {
+      id: 'company123',
+      name: bootstrapDto.companyName,
+      users: [mockUser],
+    };
+
     beforeEach(() => {
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockPrismaService.company.create.mockResolvedValue(mockCompany);
+      mockPrismaService.refreshToken.create.mockResolvedValue({
+        id: 'refresh123',
+        token: 'mock-uuid',
+        userId: mockUser.id,
+        expiresAt: expect.any(Date),
+      });
     });
 
     it('should create company and admin user successfully', async () => {
-      const mockCompany = {
-        id: 'company123',
-        name: bootstrapDto.companyName,
-        users: [
-          {
-            id: 'user123',
-            email: bootstrapDto.adminEmail,
-            password: 'hashed-password',
-            role: Role.ADMIN,
-          },
-        ],
-      };
-
-      mockPrismaService.company.create.mockResolvedValue(mockCompany);
-      mockJwtService.sign.mockReturnValue('mock-jwt-token');
-      mockPrismaService.refreshToken.create.mockResolvedValue({});
-
       const result = await service.bootstrap(bootstrapDto);
 
       expect(result).toEqual({
@@ -246,23 +252,40 @@ describe('AuthService', () => {
           name: mockCompany.name,
         },
         user: {
-          id: mockCompany.users[0].id,
-          email: mockCompany.users[0].email,
-          role: mockCompany.users[0].role,
-          companyId: mockCompany.id,
+          id: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role,
+          companyId: mockUser.companyId,
         },
         access_token: 'mock-jwt-token',
         refresh_token: 'mock-uuid',
       });
+
+      expect(mockPrismaService.company.create).toHaveBeenCalledWith({
+        data: {
+          name: bootstrapDto.companyName,
+          users: {
+            create: {
+              email: bootstrapDto.adminEmail,
+              password: 'hashed-password',
+              role: Role.ADMIN,
+            },
+          },
+        },
+        include: {
+          users: true,
+        },
+      });
     });
 
-    it('should throw UnauthorizedException when bootstrap fails', async () => {
-      mockPrismaService.company.create.mockRejectedValue(
-        new Error('Database error'),
-      );
+    it('should throw UnauthorizedException if company creation fails', async () => {
+      mockPrismaService.company.create.mockRejectedValue(new Error('Database error'));
 
       await expect(service.bootstrap(bootstrapDto)).rejects.toThrow(
         UnauthorizedException,
+      );
+      await expect(service.bootstrap(bootstrapDto)).rejects.toThrow(
+        'Failed to create company',
       );
     });
   });

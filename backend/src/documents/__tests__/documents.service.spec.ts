@@ -118,12 +118,22 @@ describe('DocumentsService', () => {
 
       mockPrismaService.document.create.mockResolvedValue(expectedDocument);
 
-      const result = await service.create(mockFile, createDocumentDto, companyId);
+      const result = await service.create(
+        mockFile,
+        createDocumentDto,
+        companyId,
+      );
 
       expect(result).toEqual(expectedDocument);
       expect(mockFileService.isValidFile).toHaveBeenCalledWith(mockFile);
-      expect(mockFileService.saveFile).toHaveBeenCalledWith(mockFile, companyId);
-      expect(mockOcrService.processDocument).toHaveBeenCalledWith(mockSavedFile.filePath, 'id');
+      expect(mockFileService.saveFile).toHaveBeenCalledWith(
+        mockFile,
+        companyId,
+      );
+      expect(mockOcrService.processDocument).toHaveBeenCalledWith(
+        mockSavedFile.filePath,
+        'id',
+      );
     });
 
     it('should throw BadRequestException for invalid file', async () => {
@@ -276,4 +286,4 @@ describe('DocumentsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
-}); 
+});
