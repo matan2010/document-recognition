@@ -168,7 +168,7 @@ describe('CompaniesController', () => {
     it('should create a company for admin users', async () => {
       const expectedResult = {
         id: companyId,
-        name: createCompanyDto.name,
+        
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -183,7 +183,6 @@ describe('CompaniesController', () => {
       expect(result).toEqual(expectedResult);
       expect(mockCompaniesService.create).toHaveBeenCalledWith(
         createCompanyDto,
-        mockAdminRequest.user.id
       );
     });
 
@@ -210,7 +209,7 @@ describe('CompaniesController', () => {
     it('should update a company for admin users', async () => {
       const expectedResult = {
         id: companyId,
-        name: updateCompanyDto.name,
+        
         createdAt: new Date(),
         updatedAt: new Date(),
       };

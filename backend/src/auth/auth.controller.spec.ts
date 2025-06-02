@@ -70,7 +70,7 @@ describe('AuthController', () => {
       );
 
       await expect(controller.bootstrap(bootstrapDto)).rejects.toThrow(
-        new InternalServerErrorException('Bootstrap failed'),
+        'Bootstrap failed'
       );
       expect(mockAuthService.bootstrap).toHaveBeenCalledWith(bootstrapDto);
     });

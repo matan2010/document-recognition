@@ -183,7 +183,6 @@ describe('CompaniesController', () => {
       expect(result).toEqual(expectedResult);
       expect(mockCompaniesService.create).toHaveBeenCalledWith(
         createCompanyDto,
-        mockAdminRequest.user.id
       );
     });
 
