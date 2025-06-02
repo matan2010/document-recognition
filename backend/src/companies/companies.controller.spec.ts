@@ -53,6 +53,10 @@ describe('CompaniesController', () => {
     jest.clearAllMocks();
   });
 
+  // FR 5.2 - Company Data Access
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // FR 5.2 - Company Data Access
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findAll', () => {
     it('should return all companies for admin users', async () => {
       const expectedResult = [
@@ -86,6 +90,10 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.2 - Company Data Access
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // FR 5.2 - Company Data Access
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findOne', () => {
     it('should return a company for admin users', async () => {
       const companyId = 'some-other-company';
@@ -116,6 +124,8 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.2 - Company Data Access
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findCurrent', () => {
     it('should allow users to access their own company', async () => {
       const expectedResult = {
@@ -139,6 +149,57 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.3 - Company Profile Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // FR 5.1 - Company Registration
+  // NFR 4.1.3 - Multi-tenancy Support
+  // FR 5.1 - Company Registration
+  // FR 5.3 - Company Profile Management
+  // NFR 4.1.3 - Multi-tenancy Support
+  describe('create', () => {
+    const companyId = 'company-id';
+    const createCompanyDto = {
+      name: 'New Company',
+      email: 'company@example.com',
+      phone: '1234567890',
+      address: '123 Main St'
+    };
+
+    it('should create a company for admin users', async () => {
+      const expectedResult = {
+        id: companyId,
+        name: updateCompanyDto.name,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockCompaniesService.create.mockResolvedValue(expectedResult);
+
+      const result = await controller.create(
+        mockAdminRequest,
+        createCompanyDto,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(mockCompaniesService.create).toHaveBeenCalledWith(
+        createCompanyDto,
+      );
+    });
+
+    it('should throw UnauthorizedException for non-admin users', async () => {
+      await expect(
+        controller.create(mockUserRequest, createCompanyDto),
+      ).rejects.toThrow(
+        new UnauthorizedException('Only admin users can create companies'),
+      );
+      expect(mockCompaniesService.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // FR 5.3 - Company Profile Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // FR 5.3 - Company Profile Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('update', () => {
     const companyId = 'company-id';
     const updateCompanyDto: UpdateCompanyDto = {
@@ -178,6 +239,8 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.3 - Company Profile Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('updateCurrent', () => {
     it('should update current company for any user', async () => {
       const mockResponse = {
@@ -212,6 +275,12 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.4 - Company Account Termination
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // NFR 4.1.4 - Data Retention Policy
+  // FR 5.4 - Company Account Termination
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // NFR 4.1.4 - Data Retention Policy
   describe('remove', () => {
     const companyId = 'company-id';
 
@@ -248,6 +317,9 @@ describe('CompaniesController', () => {
     });
   });
 
+  // FR 5.4 - Company Account Termination
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // NFR 4.1.4 - Data Retention Policy
   describe('removeCurrent', () => {
     const companyId = 'user-company-id';
 

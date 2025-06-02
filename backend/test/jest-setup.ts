@@ -22,4 +22,4 @@ process.env.TZ = 'UTC';
 process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.JWT_EXPIRATION = '1h';
 process.env.REFRESH_TOKEN_EXPIRATION = '7d';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db'; 
+process.env.DATABASE_URL = 'file:./test.db'; 

@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ClientsController } from '../clients.controller';
 import { ClientsService } from '../clients.service';
 import { CreateClientDto } from '../dto/create-client.dto';
 import { UpdateClientDto } from '../dto/update-client.dto';
 import { Client, Document } from '@prisma/client';
-import { NotFoundException } from '@nestjs/common';
 
 // Extend the Client type to include preferences
 type ExtendedClient = Client & { preferences?: string };
@@ -19,6 +19,7 @@ describe('ClientsController', () => {
     findClientDocuments: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    updateDocument: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -36,6 +37,8 @@ describe('ClientsController', () => {
     jest.clearAllMocks();
   });
 
+  // FR 2.1 - Client Creation and Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('create', () => {
     const createClientDto: CreateClientDto = {
       clientReferenceId: 'CLIENT001',
@@ -77,6 +80,8 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Retrieval
+  // FR 2.3 - Client Document Association
   describe('findAll', () => {
     const companyId = 'company123';
 
@@ -126,6 +131,8 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Retrieval
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findOne', () => {
     const clientId = 'client123';
     const companyId = 'company123';
@@ -166,7 +173,25 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 4.1, FR 4.2 - Document access, viewing, and modification capabilities
   describe('getClientDocuments', () => {
+    const baseMockDoc: Document = {
+      id: 'doc1',
+      title: 'Document 1',
+      content: 'Document content',
+      fileName: 'doc1.pdf',
+      fileType: 'pdf',
+      filePath: '/path/to/doc1.pdf',
+      fileHash: 'hash123',
+      status: 'COMPLETED',
+      metadata: '{}',
+      clientId: 'client123',
+      companyId: 'company123',
+      userId: 'user123',
+      size: 1024,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     const clientId = 'client123';
     const companyId = 'company123';
     const mockRequest = {
@@ -190,6 +215,7 @@ describe('ClientsController', () => {
           clientId,
           companyId,
           userId: 'user123',
+          size: 1024, // Adding the required size property
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -219,8 +245,160 @@ describe('ClientsController', () => {
         controller.getClientDocuments(mockRequest, companyId, clientId),
       ).rejects.toThrow(new NotFoundException('Documents not found'));
     });
+
+    // FR 4.1 - Test filtering documents by status
+    it('should return filtered documents by status', async () => {
+      const statusFilteredDocs: Document[] = [
+        {
+          id: 'doc1',
+          title: 'Document 1',
+          content: 'Document content',
+          fileName: 'doc1.pdf',
+          fileType: 'pdf',
+          filePath: '/path/to/doc1.pdf',
+          fileHash: 'hash123',
+          status: 'COMPLETED',
+          metadata: '{}',
+          clientId,
+          companyId,
+          userId: 'user123',
+          size: 1024,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      ];
+
+      mockClientsService.findClientDocuments.mockResolvedValue(statusFilteredDocs);
+
+      const result = await controller.getClientDocuments(
+        mockRequest,
+        companyId,
+        clientId
+      );
+
+      expect(result).toEqual(statusFilteredDocs);
+      expect(mockClientsService.findClientDocuments).toHaveBeenCalledWith(
+        clientId,
+        companyId,
+        { status: 'COMPLETED' }
+      );
+    });
+
+    // FR 4.2 - Test document data modification
+    it('should update document metadata', async () => {
+      const updateData = {
+        title: 'Updated Title',
+        metadata: JSON.stringify({ key: 'value' })
+      };
+
+      const baseMockDoc: Document = {
+        id: 'doc1',
+        title: 'Document 1',
+        content: 'Document content',
+        fileName: 'doc1.pdf',
+        fileType: 'pdf',
+        filePath: '/path/to/doc1.pdf',
+        fileHash: 'hash123',
+        status: 'COMPLETED',
+        metadata: '{}',
+        clientId,
+        companyId,
+        userId: 'user123',
+        size: 1024,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockClientsService.updateDocument.mockResolvedValue({
+        ...baseMockDoc,
+        ...updateData
+      });
+
+      const result = await mockClientsService.updateDocument(
+        'doc1',
+        clientId,
+        companyId,
+        updateData
+      );
+
+      expect(result.title).toBe(updateData.title);
+      expect(result.metadata).toBe(updateData.metadata);
+      expect(mockClientsService.updateDocument).toHaveBeenCalledWith(
+        'doc1',
+        clientId,
+        companyId,
+        updateData
+      );
+    });
+
+    // NFR 4.1.3 - Security constraints
+    it('should throw ForbiddenException when accessing documents from different company', async () => {
+      const differentCompanyId = 'company456';
+      
+      mockClientsService.findClientDocuments.mockRejectedValue(
+        new ForbiddenException('Access denied to company documents')
+      );
+
+      await expect(
+        controller.getClientDocuments(mockRequest, differentCompanyId, clientId)
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    // FR 4.3 - Document status tracking
+    it('should return documents with correct status transitions', async () => {
+      const mockDocumentsWithStatus: Document[] = [
+        {
+          ...baseMockDoc,
+          status: 'PENDING'
+        },
+        {
+          ...baseMockDoc,
+          id: 'doc2',
+          status: 'PARTIALLY_EXTRACTED'
+        },
+        {
+          ...baseMockDoc,
+          id: 'doc3',
+          status: 'COMPLETED'
+        }
+      ];
+
+      mockClientsService.findClientDocuments.mockResolvedValue(mockDocumentsWithStatus);
+
+      const result = await controller.getClientDocuments(
+        mockRequest,
+        companyId,
+        clientId
+      );
+
+      expect(result).toHaveLength(3);
+      expect(result.map(doc => doc.status)).toEqual(
+        expect.arrayContaining(['PENDING', 'PARTIALLY_EXTRACTED', 'COMPLETED'])
+      );
+    });
+
+    // FR 6.1, 6.2 - Logging and auditing
+    it('should log document access attempts', async () => {
+      const mockLogger = jest.spyOn(controller as any, 'logger').mockImplementation(() => ({
+        log: jest.fn()
+      }));
+      
+      await controller.getClientDocuments(mockRequest, companyId, clientId);
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        expect.stringContaining('Document access attempt'),
+        expect.objectContaining({
+          userId: mockRequest.user.id,
+          companyId,
+          clientId,
+          timestamp: expect.any(Date)
+        })
+      );
+    });
   });
 
+  // FR 2.4 - Client Data Updates
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('update', () => {
     const clientId = 'client123';
     const companyId = 'company123';
@@ -268,6 +446,9 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.5 - Client Deletion
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // NFR 4.1.4 - Data Retention and Soft Delete
   describe('remove', () => {
     const clientId = 'client123';
     const companyId = 'company123';

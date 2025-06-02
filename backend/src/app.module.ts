@@ -6,7 +6,8 @@ import { CompaniesModule } from './companies/companies.module';
 import { UsersModule } from './users/users.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ClientsModule } from './clients/clients.module';
-import { GoogleCloudConfig } from './config/google-cloud.config'; // Add this line
+import { GoogleCloudConfig } from './config/google-cloud.config';
+import { ApiModule } from './api/api.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { GoogleCloudConfig } from './config/google-cloud.config'; // Add this li
     DocumentsModule,
     UsersModule,
     ClientsModule,
+    ApiModule,
   ],
   providers: [GoogleCloudConfig],
 })

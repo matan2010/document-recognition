@@ -40,6 +40,8 @@ describe('ClientsController', () => {
     jest.clearAllMocks();
   });
 
+  // FR 2.1 - Client Creation
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('create', () => {
     const createClientDto: CreateClientDto = {
       clientReferenceId: 'CLIENT001',
@@ -78,6 +80,8 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findAll', () => {
     const companyId = 'company123';
 
@@ -127,6 +131,9 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // FR 2.3 - Client Document Association
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('findOne', () => {
     const clientId = 'client123';
     const companyId = 'company123';
@@ -163,6 +170,9 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // FR 2.4 - Client Preferences
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('update', () => {
     const clientId = 'client123';
     const companyId = 'company123';
@@ -209,6 +219,9 @@ describe('ClientsController', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
+  // NFR 4.1.4 - Data Retention Policy
   describe('remove', () => {
     const clientId = 'client123';
     const companyId = 'company123';

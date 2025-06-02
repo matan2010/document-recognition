@@ -14,6 +14,8 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
+  // FR 6.1 - API Health Check
+  // NFR 4.1.1 - Performance Requirements
   describe('root', () => {
     it('should return "Hello World!"', () => {
       expect(appController.getHello()).toBe('Hello World!');

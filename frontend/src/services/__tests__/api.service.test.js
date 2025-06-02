@@ -2,6 +2,8 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import apiService from '../api.service';
 
+// FR 7 - Frontend API Integration
+// NFR 4.1.1 - Performance Requirements
 describe('ApiService', () => {
   let mockAxios;
 
@@ -14,6 +16,8 @@ describe('ApiService', () => {
     mockAxios.reset();
   });
 
+  // FR 1.2 - User Authentication
+  // NFR 4.1.1 - Security Requirements
   describe('Authentication Header', () => {
     it('should add authorization header when token exists', async () => {
       const token = 'test-token';
@@ -37,6 +41,9 @@ describe('ApiService', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // FR 2.3 - Client Document Association
+  // NFR 4.1.1 - Performance Requirements
   describe('getClientsWithDocuments', () => {
     it('should fetch clients successfully', async () => {
       const mockData = [{ id: 1, name: 'Client 1' }];
@@ -53,6 +60,9 @@ describe('ApiService', () => {
     });
   });
 
+  // FR 2.2 - Client Data Management
+  // FR 2.3 - Client Document Association
+  // NFR 4.1.1 - Performance Requirements
   describe('getClientWithDocuments', () => {
     it('should fetch specific client successfully', async () => {
       const clientId = 1;
@@ -71,6 +81,9 @@ describe('ApiService', () => {
     });
   });
 
+  // FR 2.5 - Client Analytics Dashboard
+  // NFR 4.1.1 - Performance Requirements
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('getClientDashboard', () => {
     it('should fetch client dashboard data successfully', async () => {
       const clientId = 1;
@@ -89,6 +102,9 @@ describe('ApiService', () => {
     });
   });
 
+  // FR 5.5 - Company Analytics Dashboard
+  // NFR 4.1.1 - Performance Requirements
+  // NFR 4.1.3 - Multi-tenancy Data Isolation
   describe('getCompanyDashboard', () => {
     it('should fetch company dashboard data successfully', async () => {
       const mockData = { metrics: { total: 1000 } };
