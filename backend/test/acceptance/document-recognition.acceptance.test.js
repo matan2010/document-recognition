@@ -69,20 +69,40 @@ jest.mock('../../src/documents/documents.service', () => {
  * Each test is mapped to specific functional or non-functional requirements.
  * 
  * Functional Requirements (FR):
- * FR 3.1: Companies can upload documents for processing
- * FR 3.2: System processes uploaded documents 
- * FR 3.3: System extracts structured information from documents
- * FR 3.4: Companies can view extracted information
- * FR 3.5: System associates documents with specific clients
- * FR 3.6: Companies can view a list of all their documents
- * FR 3.7: Companies can search and filter documents
- * 
+ * FR 1. User Management
+ * FR 1.1: Businesses can register on the system via frontend or API
+ * FR 1.2: Users can create accounts and access personalized dashboards
+ *
+ * FR 2. Configuration of Preferences
+ * FR 2.1: Users can configure document types for scanning
+ * FR 2.2: Users can define specific information to extract
+ * FR 2.3: Configurations are saved and used during processing
+ *
+ * FR 3. Document Submission and Processing
+ * FR 3.1: Businesses can submit documents via API or frontend
+ * FR 3.2: Documents are stored and processed by Document AI
+ * FR 3.3: Documents are associated with a client via unique client ID
+ *
+ * FR 4. Results and Data Management
+ * FR 4.1: Results are accessible via API and frontend
+ * FR 4.2: Businesses can view, modify, delete and add data
+ * FR 4.3: Documents have associated status (Pending, Partially Extracted, Completed)
+ *
+ * FR 5. Dashboards
+ * FR 5.1: Users can access dashboard for document history and management
+ *
+ * FR 6. Logging and Auditing
+ * FR 6.1: System logs important user actions
+ * FR 6.2: Logs include timestamps, user IDs, descriptions, and identifiers
+ * FR 6.3: Logs are accessible for audit purposes
+ *
  * Non-Functional Requirements (NFR):
- * NFR 4.1.1: System handles various document formats
- * NFR 4.1.2: Document processing completes within acceptable time frame
- * NFR 4.2.1: System supports API integration with client systems
- * NFR 4.3.1: System ensures data isolation between companies
- * NFR 4.3.2: System implements proper authentication and authorization
+ * NFR 4.1.1: Performance - Document conversions within 15 seconds per page
+ * NFR 4.1.2: Reliability - System handles failures and implements backups
+ * NFR 4.1.3: Security - Data encryption and strict access controls
+ * NFR 4.1.4: Portability - Support for multiple browsers and languages
+ * NFR 4.1.5: Usability - 95% of new users can navigate without assistance
+ * NFR 4.1.6: Availability - 99% system uptime annually
  */
 describe('Document Recognition System Acceptance Tests', () => {
   let app;
