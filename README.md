@@ -12,8 +12,15 @@ http://localhost:3000/api/v1/download/document_id/doc1
 
 
 To run the project:
-For "backend" and "frontend" folders:
-1. npm i
-2. npm start 
+1. create google-credentials.json in backend/credentials with your Google Document AI credentials.
+2. For "backend" and "frontend" folders:
+-  npm i
+-  npm start 
 
-- create google-credentials.json in backend/api/credentials with your Google Document AI credentials.
+To run tests:
+- unit testing - inside "backend" and "frontend" folders:
+  npm run test
+-integration testing: inside "backend" folder:
+  npm run test:integration
+-acceptance testing: inside "backend" folder:
+  npm run test:acceptance 
