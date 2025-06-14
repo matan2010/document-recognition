@@ -252,7 +252,7 @@ describe('Document Recognition System Acceptance Tests', () => {
   }
   
   /**
-   * Group 1: Document Upload and Management Tests
+   * Group 1: Document Upload and Management Tests.
    * Covers requirements: FR 3.1, FR 3.6, FR 3.7, NFR 4.3.1
    */
   describe('Document Upload and Management', () => {
