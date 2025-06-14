@@ -16,9 +16,9 @@ To run the project:
 -  npm start 
 
 To run tests:
-- unit testing - inside "backend" and "frontend" folders:
+- unit testing - under "backend" and "frontend" folders:
   npm run test
--integration testing: inside "backend" folder:
+-integration testing: under "backend" folder:
   npm run test:integration
--acceptance testing: inside "backend" folder:
+-acceptance testing: under "backend" folder:
   npm run test:acceptance 
